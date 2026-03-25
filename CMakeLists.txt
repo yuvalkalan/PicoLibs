@@ -35,23 +35,41 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(PicoLibs PicoLibs.c )
 
-pico_set_program_name(PicoLibs "PicoLibs")
-pico_set_program_version(PicoLibs "0.1")
+set(MY_LIBRARIES
+        CC1101
+        SerialIn
+)
+
+foreach(LIB_NAME IN LISTS MY_LIBRARIES)
+    add_subdirectory(${LIB_NAME})
+endforeach()
+
+
+add_executable(${PROJECT_NAME}
+        Main.cpp )
+
+pico_set_program_name(${PROJECT_NAME} "PicoLibs")
+pico_set_program_version(${PROJECT_NAME} "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(PicoLibs 0)
-pico_enable_stdio_usb(PicoLibs 0)
-
-# Add the standard library to the build
-target_link_libraries(PicoLibs
-        pico_stdlib)
+pico_enable_stdio_uart(${PROJECT_NAME} 0)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
 
 # Add the standard include files to the build
-target_include_directories(PicoLibs PRIVATE
+target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
 )
 
-pico_add_extra_outputs(PicoLibs)
+# Add any user requested libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+        ${MY_LIBRARIES}
+        pico_stdlib
+        pico_multicore
+        hardware_spi
+        hardware_i2c
+        hardware_interp        
+        )
+
+pico_add_extra_outputs(${PROJECT_NAME})
 
