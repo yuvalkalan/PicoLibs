@@ -68,14 +68,26 @@ protected: // work modes
 protected: // transmit and receive sub-functions
     void tx_payload_burst(uint8_t rx_addr, uint8_t length);
     bool rx_payload_burst(uint8_t &pktlen);
-    bool check_acknowledge(uint8_t pktlen, uint8_t sender);
-    void sent_acknowledge(uint8_t tx_addr);
 
 public: // transmit and receive functions
-    bool sent_packet(uint8_t rx_addr, uint8_t *tx_buffer, uint8_t pktlen, uint8_t tx_retries);
+    bool sent_packet(uint8_t rx_addr, uint8_t *tx_buffer, uint8_t pktlen);
     bool get_payload(uint8_t &pktlen, uint8_t &sender, int8_t &rssi_dbm, uint8_t &lqi);
     bool packet_available();
 
 public:
     CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
 };
+
+class ConnectCC1101 : public CC1101
+{
+public:
+    ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
+
+public:
+    bool connect(uint8_t rx_addr, uint8_t timeout_ms);
+    bool accept(uint8_t timeout_ms);
+};
+
+ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
+{
+}

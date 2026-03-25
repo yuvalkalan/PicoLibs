@@ -22,3 +22,6 @@ public:
     void update();
     SerialIn();
 };
+
+void serial_core();
+void wait_for_serial(int timeout_ms);

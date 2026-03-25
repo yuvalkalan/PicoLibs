@@ -1,6 +1,6 @@
 #include "CC1101.h"
 
-// Patable index: -30  -20- -15  -10   0    5    7    10 dBm
+// Patable index: -30  -20 -15  -10   0    5    7    10 dBm
 static uint8_t patable_power_315[8] = {0x17, 0x1D, 0x26, 0x69, 0x51, 0x86, 0xCC, 0xC3};
 static uint8_t patable_power_433[8] = {0x6C, 0x1C, 0x06, 0x3A, 0x51, 0x85, 0xC8, 0xC0};
 static uint8_t patable_power_868[8] = {0x03, 0x17, 0x1D, 0x26, 0x50, 0x86, 0xCD, 0xC0};
@@ -289,106 +289,44 @@ bool CC1101::packet_available()
     }
     return false;
 }
-void CC1101::sent_acknowledge(uint8_t tx_addr)
-{
-    uint8_t pktlen = 0x06; // complete Pktlen for ACK packet
-
-    // fill buffer with ACK Payload
-    m_tx_buffer[3] = 'A';
-    m_tx_buffer[4] = 'c';
-    m_tx_buffer[5] = 'k';
-
-    tx_payload_burst(tx_addr, pktlen); // load payload to CC1101
-    transmit_workmode();               // sent package over the air
-    receive_workmode();                // set CC1101 in receive mode
-
-    // printf("Ack_sent!\r\n");
-}
-bool CC1101::check_acknowledge(uint8_t pktlen, uint8_t sender)
-{
-    int8_t rssi_dbm;
-    uint8_t crc, lqi;
-
-    if ((pktlen == 0x05 && rx_buffer[1] == m_address || rx_buffer[1] == CC1101_BROADCAST_ADDRESS) && rx_buffer[2] == sender && rx_buffer[3] == 'A' && rx_buffer[4] == 'c' && rx_buffer[5] == 'k') // acknowledge received!
-    {
-        if (rx_buffer[1] == CC1101_BROADCAST_ADDRESS)
-        { // if receiver address CC1101_BROADCAST_ADDRESS skip acknowledge
-            // printf("BROADCAST ACK\r\n");
-            return false;
-        }
-        rssi_dbm = rssi_convert(rx_buffer[pktlen + 1]);
-        lqi = lqi_convert(rx_buffer[pktlen + 2]);
-        crc = check_crc(lqi);
-
-        // printf("ACK! ");
-        // printf("RSSI:%i ", rssi_dbm);
-        // printf("LQI:0x%02X ", lqi);
-        // printf("CRC:0x%02X\r\n", crc);
-        return true;
-    }
-    return false;
-}
 bool CC1101::get_payload(uint8_t &pktlen, uint8_t &sender, int8_t &rssi_dbm, uint8_t &lqi)
 {
     uint8_t crc;
-
     fifo_erase(rx_buffer);         // delete rx_fifo bufffer
     if (!rx_payload_burst(pktlen)) // read package in buffer
     {
         fifo_erase(rx_buffer); // delete rx_fifo bufffer
         return false;          // exit
     }
-    else
-    {
-        sender = rx_buffer[2];
-        if (check_acknowledge(pktlen, sender)) // acknowlage received?
-        {
-            printf("ACK received!\r\n");
-            fifo_erase(rx_buffer); // delete rx_fifo bufffer
-            return false;          // Ack received -> finished
-        }
-        else // real data, and sent acknowladge
-        {
-            printf("Data received!\r\n");
-            rssi_dbm = rssi_convert(rx_buffer[pktlen + 1]); // converts receiver strength to dBm
-            lqi = lqi_convert(rx_buffer[pktlen + 2]);       // get rf quialtiy indicator
-            crc = check_crc(lqi);                           // get packet CRC
-            // if (true)
-            // {                                                 // debug output messages
-            //     if (rx_buffer[1] == CC1101_BROADCAST_ADDRESS) // if my receiver address is CC1101_BROADCAST_ADDRESS
-            //     {
-            //         printf("BROADCAST message\r\n");
-            //     }
-            //     printf("RX_FIFO:");
-            //     for (uint8_t i = 0; i < pktlen + 1; i++) // showes rx_buffer for debug
-            //     {
-            //         printf("0x%02X ", rx_buffer[i]);
-            //     }
-            //     printf("| 0x%02X 0x%02X |", rx_buffer[pktlen + 1], rx_buffer[pktlen + 2]);
-            //     printf("\r\n");
-            //     printf("RSSI:%d ", rssi_dbm);
-            //     printf("LQI:");
-            //     printf("0x%02X ", lqi);
-            //     printf("CRC:");
-            //     printf("0x%02X ", crc);
-            //     printf("\r\n");
-            // }
-            if (rx_buffer[1] != CC1101_BROADCAST_ADDRESS) // send only ack if no CC1101_BROADCAST_ADDRESS
-            {
-                sleep_us(200);            // wait some time to let the sender change to rx mode
-                sent_acknowledge(sender); // sending acknowlage to sender!
-            }
-            return true;
-        }
-        return false;
-    }
+    sender = rx_buffer[2];
+    rssi_dbm = rssi_convert(rx_buffer[pktlen + 1]); // converts receiver strength to dBm
+    lqi = lqi_convert(rx_buffer[pktlen + 2]);       // get rf quialtiy indicator
+    crc = check_crc(lqi);                           // get packet CRC
+    // if (true)
+    // {                                                 // debug output messages
+    //     if (rx_buffer[1] == CC1101_BROADCAST_ADDRESS) // if my receiver address is CC1101_BROADCAST_ADDRESS
+    //     {
+    //         printf("BROADCAST message\r\n");
+    //     }
+    //     printf("RX_FIFO:");
+    //     for (uint8_t i = 0; i < pktlen + 1; i++) // showes rx_buffer for debug
+    //     {
+    //         printf("0x%02X ", rx_buffer[i]);
+    //     }
+    //     printf("| 0x%02X 0x%02X |", rx_buffer[pktlen + 1], rx_buffer[pktlen + 2]);
+    //     printf("\r\n");
+    //     printf("RSSI:%d ", rssi_dbm);
+    //     printf("LQI:");
+    //     printf("0x%02X ", lqi);
+    //     printf("CRC:");
+    //     printf("0x%02X ", crc);
+    //     printf("\r\n");
+    // }
+    return true;
 }
 
-bool CC1101::sent_packet(uint8_t rx_addr, uint8_t *data, uint8_t pktlen, uint8_t tx_retries)
+bool CC1101::sent_packet(uint8_t rx_addr, uint8_t *data, uint8_t pktlen)
 {
-    uint8_t pktlen_ack, rssi, lqi; // default package len for ACK
-    uint8_t tx_retries_count = 0;
-    uint16_t ack_wait_counter = 0;
     pktlen += 3; // real data size (contain length, rx address and tx address)
     if (pktlen > (CC1101_FIFOBUFFER - 1))
     {
@@ -399,40 +337,10 @@ bool CC1101::sent_packet(uint8_t rx_addr, uint8_t *data, uint8_t pktlen, uint8_t
     // set tx buffer
     memcpy((m_tx_buffer + 3), data, pktlen - 3);
 
-    do // sent package out with retries
-    {
-        tx_payload_burst(rx_addr, pktlen); // loads the data in cc1101 buffer
-        transmit_workmode();               // sents data over air
-        receive_workmode();                // receive mode
-
-        if (rx_addr == CC1101_BROADCAST_ADDRESS)
-        {                // no wait acknowledge if sent to broadcast address or tx_retries = 0
-            return true; // successful sent to CC1101_BROADCAST_ADDRESS
-        }
-
-        while (ack_wait_counter < CC1101_ACK_TIMEOUT) // wait for an acknowledge
-        {
-            if (packet_available()) // if RF package received check package acknowge
-            {
-                fifo_erase(rx_buffer);                      // erase RX software buffer
-                rx_payload_burst(pktlen_ack);               // reads package in buffer
-                if (check_acknowledge(pktlen_ack, rx_addr)) // check if received message is an acknowledge from client
-                    return true;                            // package successfully sent
-            }
-            else
-            {
-                ack_wait_counter++; // increment ACK wait counter
-                sleep_ms(1);        // delay to give receiver time
-            }
-        }
-
-        ack_wait_counter = 0; // resets the ACK_Timeout
-        tx_retries_count++;   // increase tx retry counter
-        // printf(" #:0x%02X \r\n", tx_retries_count); // debug output messages
-
-    } while (tx_retries_count <= tx_retries); // while count of retries is reaches
-
-    return false; // sent failed. too many retries
+    tx_payload_burst(rx_addr, pktlen); // loads the data in cc1101 buffer
+    transmit_workmode();               // sents data over air
+    receive_workmode();                // receive mode
+    return true;
 }
 
 CC1101::CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address)

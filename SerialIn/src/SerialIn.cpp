@@ -33,3 +33,23 @@ void SerialIn::update()
         m_message = "";
     }
 }
+
+void serial_core()
+{
+    SerialIn serial_in;
+    while (true)
+    {
+        serial_in.update();
+    }
+}
+
+void wait_for_serial(int timeout_ms)
+{
+    absolute_time_t timeout = make_timeout_time_ms(timeout_ms);
+    while (!tud_cdc_connected())
+    {
+        if (time_reached(timeout))
+            return;
+        sleep_ms(100);
+    }
+}

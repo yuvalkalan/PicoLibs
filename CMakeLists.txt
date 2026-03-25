@@ -39,6 +39,7 @@ pico_sdk_init()
 set(MY_LIBRARIES
         CC1101
         SerialIn
+        UniqueID
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
