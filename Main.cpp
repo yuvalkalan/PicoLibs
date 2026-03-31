@@ -1,5 +1,5 @@
 #include "SerialIn.h"
-#include "CC1101.h"
+#include "ConnectCC1101.h"
 #include "UniqueID.h"
 
 #include <stdio.h>
@@ -19,14 +19,26 @@ bool is_sender()
 void run_sender()
 {
     printf("Running sender...\n");
-    CC1101 radio(CC1101_FREQ_434MHZ, 0x1, 0x00, SENDER_ADDRESS);
+    CC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, SENDER_ADDRESS);
     int counter = 0;
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
     while (true)
     {
-        std::string msg = "hello world! " + std::to_string(counter);
-        radio.sent_packet(RECEIVER_ADDRESS, (uint8_t *)msg.c_str(), msg.length() + 1);
-        printf("Sent: %s\r\n", msg.c_str());
-        sleep_ms(1000);
+        std::string msg = std::to_string(counter);
+        msg = std::string(59 - msg.length(), '0') + msg;
+        Packet packet;
+        memcpy(packet.payload, msg.c_str(), msg.length() + 1);
+        packet.header.length = msg.length() + sizeof(PacketHeader); // payload length + header length
+        packet.header.rx_addr = CC1101_BROADCAST_ADDRESS;
+        radio.send_packet(packet);
+        if (counter % 1000 == 0)
+        {
+            uint32_t current_time = to_ms_since_boot(get_absolute_time());
+            printf("Time: %d ms\n", current_time - start_time);
+            start_time = current_time;
+        }
+        // printf("Sent: %s\r\n", msg.c_str());
+        // sleep_ms(10);
         counter++;
     }
 }
@@ -34,17 +46,26 @@ void run_sender()
 void run_receiver()
 {
     printf("Running receiver...\n");
-    CC1101 radio(CC1101_FREQ_434MHZ, 0x1, 0x00, RECEIVER_ADDRESS);
+    CC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, RECEIVER_ADDRESS);
+    // int expected_msg = 0;
     while (true)
     {
         if (radio.packet_available())
         {
-            // printf("have data!\r\n");
-            uint8_t pktlen, sender, lqi;
+            Packet packet;
             int8_t rssi_dbm;
-            if (radio.get_payload(pktlen, sender, rssi_dbm, lqi))
+            uint8_t lqi;
+            if (radio.get_payload(packet, rssi_dbm, lqi)) // read package in buffer
             {
-                printf("Received: %s rssi: %d lqi: %d\r\n", radio.rx_buffer + 3, rssi_dbm, lqi);
+                // int msg = atoi((char *)radio.rx_buffer + 3);
+                // if (msg != expected_msg)
+                // {
+                //     printf("Received: %d rssi: %d lqi: %d ----- %d\r\n", msg, rssi_dbm, lqi, expected_msg);
+                //     expected_msg = msg;
+                // }
+                // expected_msg++;
+
+                printf("Received: %s rssi: %d lqi: %d\r\n", packet.payload, rssi_dbm, lqi);
             }
         }
     }

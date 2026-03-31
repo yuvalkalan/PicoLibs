@@ -13,26 +13,25 @@ void fifo_erase(uint8_t *buffer)
 {
     memset(buffer, 0, CC1101_FIFOBUFFER); // erased the RX_fifo array content to "0"
 }
-int8_t rssi_convert(uint8_t Rssi_hex)
+
+int8_t rssi_convert(uint8_t raw_rssi)
 {
-    int8_t rssi_dbm;
-    int16_t Rssi_dec;
+    // 1. Cast the raw byte to a signed 8-bit integer so values >= 128 become negative
+    int8_t signed_raw = (int8_t)raw_rssi;
 
-    Rssi_dec = Rssi_hex; // convert unsigned to signed
+    // 2. Do the math in a 16-bit integer so -138 doesn't instantly underflow
+    int16_t calculated_rssi = (signed_raw / 2) - CC1101_RSSI_OFFSET_868MHZ;
 
-    if (Rssi_dec >= 128)
+    // 3. Clamp the value at -128 to prevent it from wrapping around to a positive number
+    if (calculated_rssi < -128)
     {
-        rssi_dbm = ((Rssi_dec - 256) / 2) - CC1101_RSSI_OFFSET_868MHZ;
+        return -128; // Absolute noise floor
     }
-    else
-    {
-        if (Rssi_dec < 128)
-        {
-            rssi_dbm = ((Rssi_dec) / 2) - CC1101_RSSI_OFFSET_868MHZ;
-        }
-    }
-    return rssi_dbm;
+
+    // 4. Safely return it as an 8-bit integer
+    return (int8_t)calculated_rssi;
 }
+
 uint8_t lqi_convert(uint8_t lqi)
 {
     return (lqi & 0x7F);
@@ -226,17 +225,17 @@ void CC1101::wakeup()
 
 void CC1101::idle_workmode()
 {
-    uint8_t marcstate;
     strobe(CC1101_SIDLE);
     wait_idle();
     sleep_us(100);
 }
 void CC1101::transmit_workmode()
 {
-    idle_workmode();    // sets to idle first. TODO: try to remove
+    // idle_workmode();    // sets to idle first. TODO: try to remove
     strobe(CC1101_STX); // sends the data over air
-    wait_idle();
-    sleep_us(100);
+    // wait_idle();
+
+    // sleep_us(100);
 }
 void CC1101::receive_workmode()
 {
@@ -246,35 +245,30 @@ void CC1101::receive_workmode()
     sleep_us(100);
 }
 
-void CC1101::tx_payload_burst(uint8_t rx_addr, uint8_t length)
-{
-    m_tx_buffer[0] = length - 1;
-    m_tx_buffer[1] = rx_addr;
-    m_tx_buffer[2] = m_address;
-    write_burst(CC1101_TXFIFO_BURST, m_tx_buffer, length); // writes TX_Buffer +1 because of pktlen must be also transfered
-    // printf("sending data...\n");
-}
-bool CC1101::rx_payload_burst(uint8_t &pktlen)
+bool CC1101::rx_payload_burst(Packet &packet)
 {
     uint8_t bytes_in_RXFIFO = read_single_byte(CC1101_RXBYTES); // reads the number of bytes in RXFIFO
-    bool res = false;
-    if ((bytes_in_RXFIFO & 0x7F) && !(bytes_in_RXFIFO & 0x80)) // if bytes in buffer and no RX Overflow
+    if ((bytes_in_RXFIFO & 0x7F) && !(bytes_in_RXFIFO & 0x80))  // if bytes in buffer and no RX Overflow
     {
         // printf("have data!\n");
-        read_burst(rx_buffer, CC1101_RXFIFO_BURST, bytes_in_RXFIFO);
-        pktlen = rx_buffer[0];
+        read_burst((uint8_t *)&packet, CC1101_RXFIFO_BURST, bytes_in_RXFIFO);
         // printf("receive data!\n");
-        res = true;
+        return true;
     }
-    else
+    if (bytes_in_RXFIFO & 0x80) // if overflow
     {
-        printf("did not receive data!\n");
-        idle_workmode(); // set to IDLE
-        flush_rx();      // flush RX Buffer
-        sleep_us(100);
-        receive_workmode(); // set to receive mode
+        printf("RX FIFO overflow!\n");
     }
-    return res;
+    if (!(bytes_in_RXFIFO & 0x7F)) // if no bytes
+    {
+        printf("no bytes in RX FIFO!\n");
+    }
+    printf("did not receive data!\n");
+    idle_workmode(); // set to IDLE
+    flush_rx();      // flush RX Buffer
+    sleep_us(100);
+    receive_workmode(); // set to receive mode
+    return false;
 }
 bool CC1101::packet_available()
 {
@@ -289,57 +283,44 @@ bool CC1101::packet_available()
     }
     return false;
 }
-bool CC1101::get_payload(uint8_t &pktlen, uint8_t &sender, int8_t &rssi_dbm, uint8_t &lqi)
+
+int8_t CC1101::get_live_rssi()
 {
-    uint8_t crc;
-    fifo_erase(rx_buffer);         // delete rx_fifo bufffer
-    if (!rx_payload_burst(pktlen)) // read package in buffer
+    // 0xF4 is the CC1101_RSSI status register
+    uint8_t raw_rssi = read_single_byte(CC1101_RSSI);
+    return rssi_convert(raw_rssi);
+}
+
+bool CC1101::get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi)
+{
+    if (!rx_payload_burst(packet)) // read package in buffer
     {
-        fifo_erase(rx_buffer); // delete rx_fifo bufffer
-        return false;          // exit
+        return false; // exit
     }
-    sender = rx_buffer[2];
-    rssi_dbm = rssi_convert(rx_buffer[pktlen + 1]); // converts receiver strength to dBm
-    lqi = lqi_convert(rx_buffer[pktlen + 2]);       // get rf quialtiy indicator
-    crc = check_crc(lqi);                           // get packet CRC
-    // if (true)
-    // {                                                 // debug output messages
-    //     if (rx_buffer[1] == CC1101_BROADCAST_ADDRESS) // if my receiver address is CC1101_BROADCAST_ADDRESS
-    //     {
-    //         printf("BROADCAST message\r\n");
-    //     }
-    //     printf("RX_FIFO:");
-    //     for (uint8_t i = 0; i < pktlen + 1; i++) // showes rx_buffer for debug
-    //     {
-    //         printf("0x%02X ", rx_buffer[i]);
-    //     }
-    //     printf("| 0x%02X 0x%02X |", rx_buffer[pktlen + 1], rx_buffer[pktlen + 2]);
-    //     printf("\r\n");
-    //     printf("RSSI:%d ", rssi_dbm);
-    //     printf("LQI:");
-    //     printf("0x%02X ", lqi);
-    //     printf("CRC:");
-    //     printf("0x%02X ", crc);
-    //     printf("\r\n");
-    // }
+    rssi_dbm = rssi_convert(packet.payload[packet.header.length - 2]); // converts receiver strength to dBm
+    lqi = lqi_convert(packet.payload[packet.header.length - 1]);       // get rf quialtiy indicator
+    uint8_t crc = check_crc(packet.payload[packet.header.length - 1]); // get packet CRC
+    if (!crc)
+    {
+        printf("CRC check failed!\n");
+        return false;
+    }
     return true;
 }
 
-bool CC1101::sent_packet(uint8_t rx_addr, uint8_t *data, uint8_t pktlen)
+bool CC1101::send_packet(Packet &packet)
 {
-    pktlen += 3; // real data size (contain length, rx address and tx address)
-    if (pktlen > (CC1101_FIFOBUFFER - 1))
+    packet.header.tx_addr = m_address;                   // set sender address
+    if (packet.header.length >= (CC1101_FIFOBUFFER - 2)) // reserve 2 bytes for rssi and lqi, so the max package size is 64
     {
-        printf("ERROR: package size overflow\r\n");
+        printf("ERROR: package size overflow\n");
         return false;
     }
+    wait_idle();
+    write_burst(CC1101_TXFIFO_BURST, (uint8_t *)&packet, packet.header.length + 1); // write data to TX FIFO
+    transmit_workmode();                                                            // sends data over air
 
-    // set tx buffer
-    memcpy((m_tx_buffer + 3), data, pktlen - 3);
-
-    tx_payload_burst(rx_addr, pktlen); // loads the data in cc1101 buffer
-    transmit_workmode();               // sents data over air
-    receive_workmode();                // receive mode
+    // receive_workmode();                // receive mode
     return true;
 }
 
@@ -363,9 +344,10 @@ CC1101::CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address)
     // set channel
     set_channel(m_channel);
     // set output power amplifier
-    set_output_power_level(10); // set PA to 0dBm as default
+    set_output_power_level(-30); // set PA to 0dBm as default
     // set my receiver address
     set_myaddr(m_address); // m_address from EEPROM to global variable
     printf("init done!\n");
-    receive_workmode(); // set cc1101 in receive mode
+    idle_workmode();
+    // receive_workmode(); // set cc1101 in receive mode
 }

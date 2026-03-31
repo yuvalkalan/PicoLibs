@@ -20,13 +20,28 @@
 #define cc1101_select() gpio_put(CC1101_PIN_CS, 0)   //  Select (SPI) CC1101
 #define cc1101_deselect() gpio_put(CC1101_PIN_CS, 1) // Deselect (SPI) CC1101
 // cc1101 softwate macros
-#define wait_idle() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x01) // Wait untile enter idle mode
-#define wait_rx() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x0D)   // Wait untile enter rx mode
+#define wait_idle() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x01) // Wait until enter idle mode
+#define wait_rx() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x0D)   // Wait until enter rx mode
 #define flush_rx() strobe(CC1101_SFRX)
 #define flush_tx() strobe(CC1101_SFTX)
 
 int8_t rssi_convert(uint8_t Rssi_hex);
 uint8_t lqi_convert(uint8_t lqi);
+
+#define TRACKER_TYPE uint16_t
+
+struct __attribute__((packed)) PacketHeader
+{
+    uint8_t length;  // length of payload + header (do not move this!)
+    uint8_t rx_addr; // receiver address (used for filtering in hardware, do not move this!)
+    uint8_t tx_addr; // transmitter address (do not move this!)
+};
+
+struct __attribute__((packed)) Packet
+{
+    PacketHeader header;
+    uint8_t payload[CC1101_FIFOBUFFER - sizeof(PacketHeader)]; // reserve 2 bytes for rssi and lqi
+};
 
 class CC1101
 {
@@ -35,10 +50,6 @@ protected: // variables
     uint8_t m_mode;
     uint8_t m_channel;
     uint8_t m_address;
-    uint8_t m_tx_buffer[CC1101_FIFOBUFFER];
-
-public:
-    uint8_t rx_buffer[CC1101_FIFOBUFFER];
 
 protected: // low spi api
     void strobe(uint8_t cmd);
@@ -66,28 +77,14 @@ protected: // work modes
     void receive_workmode();
 
 protected: // transmit and receive sub-functions
-    void tx_payload_burst(uint8_t rx_addr, uint8_t length);
-    bool rx_payload_burst(uint8_t &pktlen);
+    bool rx_payload_burst(Packet &packet);
+    int8_t get_live_rssi();
 
 public: // transmit and receive functions
-    bool sent_packet(uint8_t rx_addr, uint8_t *tx_buffer, uint8_t pktlen);
-    bool get_payload(uint8_t &pktlen, uint8_t &sender, int8_t &rssi_dbm, uint8_t &lqi);
+    bool send_packet(Packet &packet);
+    bool get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi);
     bool packet_available();
 
 public:
     CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
 };
-
-class ConnectCC1101 : public CC1101
-{
-public:
-    ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
-
-public:
-    bool connect(uint8_t rx_addr, uint8_t timeout_ms);
-    bool accept(uint8_t timeout_ms);
-};
-
-ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
-{
-}
