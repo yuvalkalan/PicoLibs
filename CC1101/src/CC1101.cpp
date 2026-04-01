@@ -226,16 +226,10 @@ void CC1101::wakeup()
 void CC1101::idle_workmode()
 {
     strobe(CC1101_SIDLE);
-    wait_idle();
-    sleep_us(100);
 }
 void CC1101::transmit_workmode()
 {
-    // idle_workmode();    // sets to idle first. TODO: try to remove
     strobe(CC1101_STX); // sends the data over air
-    // wait_idle();
-
-    // sleep_us(100);
 }
 void CC1101::receive_workmode()
 {
@@ -243,6 +237,11 @@ void CC1101::receive_workmode()
     strobe(CC1101_SRX); // writes receive strobe (receive mode)
     wait_rx();
     sleep_us(100);
+}
+
+void CC1101::fstxon_workmode()
+{
+    strobe(CC1101_SFSTXON); // writes FSTXON strobe (calibrate freq synthesizer)
 }
 
 bool CC1101::rx_payload_burst(Packet &packet)
@@ -286,7 +285,6 @@ bool CC1101::packet_available()
 
 int8_t CC1101::get_live_rssi()
 {
-    // 0xF4 is the CC1101_RSSI status register
     uint8_t raw_rssi = read_single_byte(CC1101_RSSI);
     return rssi_convert(raw_rssi);
 }
@@ -316,7 +314,7 @@ bool CC1101::send_packet(Packet &packet)
         printf("ERROR: package size overflow\n");
         return false;
     }
-    wait_idle();
+    wait_fstxon();
     write_burst(CC1101_TXFIFO_BURST, (uint8_t *)&packet, packet.header.length + 1); // write data to TX FIFO
     transmit_workmode();                                                            // sends data over air
 

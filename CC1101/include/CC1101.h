@@ -14,14 +14,15 @@
 #define CC1101_PIN_CS 13
 #define CC1101_PIN_GDO0 15
 #define CC1101_PIN_GDO2 14
-#define CC1101_SPI_BAUDRATE 5 * 1000 * 1000 // 5MHZ
+#define CC1101_SPI_BAUDRATE 10 * 1000 * 1000 // 5MHZ
 
 // cc1101 gpio macros
 #define cc1101_select() gpio_put(CC1101_PIN_CS, 0)   //  Select (SPI) CC1101
 #define cc1101_deselect() gpio_put(CC1101_PIN_CS, 1) // Deselect (SPI) CC1101
 // cc1101 softwate macros
-#define wait_idle() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x01) // Wait until enter idle mode
-#define wait_rx() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x0D)   // Wait until enter rx mode
+#define wait_idle() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x01)   // Wait until enter idle mode
+#define wait_rx() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x0D)     // Wait until enter rx mode
+#define wait_fstxon() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x12) // Wait until enter FSTXON mode
 #define flush_rx() strobe(CC1101_SFRX)
 #define flush_tx() strobe(CC1101_SFTX)
 
@@ -71,10 +72,11 @@ protected: // software configuration api
     void set_mode(uint8_t mode);
     void set_output_power_level(int8_t dBm);
 
-protected: // work modes
+public: // work modes
     void idle_workmode();
     void transmit_workmode();
     void receive_workmode();
+    void fstxon_workmode();
 
 protected: // transmit and receive sub-functions
     bool rx_payload_burst(Packet &packet);

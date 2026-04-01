@@ -20,6 +20,7 @@ void run_sender()
 {
     printf("Running sender...\n");
     CC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, SENDER_ADDRESS);
+    radio.fstxon_workmode(); // calibrate frequency synthesizer
     int counter = 0;
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
     while (true)
@@ -47,7 +48,7 @@ void run_receiver()
 {
     printf("Running receiver...\n");
     CC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, RECEIVER_ADDRESS);
-    // int expected_msg = 0;
+    int expected_msg = 0;
     while (true)
     {
         if (radio.packet_available())
@@ -57,15 +58,15 @@ void run_receiver()
             uint8_t lqi;
             if (radio.get_payload(packet, rssi_dbm, lqi)) // read package in buffer
             {
-                // int msg = atoi((char *)radio.rx_buffer + 3);
-                // if (msg != expected_msg)
-                // {
-                //     printf("Received: %d rssi: %d lqi: %d ----- %d\r\n", msg, rssi_dbm, lqi, expected_msg);
-                //     expected_msg = msg;
-                // }
-                // expected_msg++;
+                int msg = atoi((char *)packet.payload);
+                if (msg != expected_msg)
+                {
+                    printf("Received: %d rssi: %d lqi: %d ----- %d\r\n", msg, rssi_dbm, lqi, expected_msg);
+                    expected_msg = msg;
+                }
+                expected_msg++;
 
-                printf("Received: %s rssi: %d lqi: %d\r\n", packet.payload, rssi_dbm, lqi);
+                // printf("Received: %s rssi: %d lqi: %d\r\n", packet.payload, rssi_dbm, lqi);
             }
         }
     }
