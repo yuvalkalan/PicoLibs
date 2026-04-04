@@ -6,6 +6,7 @@ add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME} PRIVATE
     src/CC1101.cpp
+    src/ConnectCC1101.cpp
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib

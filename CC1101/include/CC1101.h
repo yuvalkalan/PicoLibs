@@ -5,6 +5,7 @@
 #include "hardware/spi.h"
 #include "pico/stdlib.h"
 #include "configuration.h"
+#include <string>
 #include <string.h>
 
 #define CC1101_SPI_PORT spi1
@@ -29,19 +30,25 @@
 int8_t rssi_convert(uint8_t Rssi_hex);
 uint8_t lqi_convert(uint8_t lqi);
 
-#define TRACKER_TYPE uint16_t
+#define TRACKER_T uint16_t
 
 struct __attribute__((packed)) PacketHeader
 {
     uint8_t length;  // length of payload + header (do not move this!)
     uint8_t rx_addr; // receiver address (used for filtering in hardware, do not move this!)
-    uint8_t tx_addr; // transmitter address (do not move this!)
+    uint8_t tx_addr;
 };
 
 struct __attribute__((packed)) Packet
 {
     PacketHeader header;
-    uint8_t payload[CC1101_FIFOBUFFER - sizeof(PacketHeader)]; // reserve 2 bytes for rssi and lqi
+    uint8_t payload[CC1101_FIFOBUFFER - sizeof(header)] = {0};
+    std::string to_string() const
+    {
+        char buffer[256];
+        sprintf(buffer, "(%d)\t %02X -> %02X", header.length, header.tx_addr, header.rx_addr);
+        return std::string(buffer) + std::string((char *)payload);
+    }
 };
 
 class CC1101

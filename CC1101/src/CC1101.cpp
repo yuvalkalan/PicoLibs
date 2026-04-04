@@ -308,17 +308,20 @@ bool CC1101::get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi)
 
 bool CC1101::send_packet(Packet &packet)
 {
+
     packet.header.tx_addr = m_address;                   // set sender address
-    if (packet.header.length >= (CC1101_FIFOBUFFER - 2)) // reserve 2 bytes for rssi and lqi, so the max package size is 64
+    if (packet.header.length > CC1101_MAX_PACKET_LENGTH) // check if packet size is larger than max payload size (CC1101_MAX_PACKET_LENGTH - 1 byte for length)
     {
         printf("ERROR: package size overflow\n");
         return false;
     }
-    wait_fstxon();
+    idle_workmode();
+    wait_idle();
     write_burst(CC1101_TXFIFO_BURST, (uint8_t *)&packet, packet.header.length + 1); // write data to TX FIFO
-    transmit_workmode();                                                            // sends data over air
 
-    // receive_workmode();                // receive mode
+    transmit_workmode(); // sends data over air
+    wait_idle();
+    receive_workmode(); // receive mode
     return true;
 }
 
@@ -346,6 +349,6 @@ CC1101::CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address)
     // set my receiver address
     set_myaddr(m_address); // m_address from EEPROM to global variable
     printf("init done!\n");
-    idle_workmode();
-    // receive_workmode(); // set cc1101 in receive mode
+    // idle_workmode();
+    receive_workmode(); // set cc1101 in receive mode
 }
