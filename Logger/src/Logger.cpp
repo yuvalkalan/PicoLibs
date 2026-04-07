@@ -1,16 +1,8 @@
 #include "Logger.h"
 
-Logger::Logger(int level) : m_level(level)
-{
-}
+LogLevel Logger::m_level = LogLevel::INFO;
 
-Logger &Logger::getInstance(int level)
-{
-    static Logger instance(level);
-    return instance;
-}
-
-void Logger::print(int level, const char *fmt, ...)
+void Logger::print(LogLevel level, const char *fmt, ...)
 {
     // print data based on the level
     if (level < m_level)
@@ -22,22 +14,22 @@ void Logger::print(int level, const char *fmt, ...)
     printf("[%lu ms] ", now);
     switch (level)
     {
-    case TRACE:
+    case LogLevel::TRACE:
         printf("\033[90m[TRACE] "); // Gray
         break;
-    case DEBUG:
+    case LogLevel::DEBUG:
         printf("\033[36m[DEBUG] "); // Cyan
         break;
-    case INFO:
+    case LogLevel::INFO:
         printf("\033[32m[INFO] "); // Green
         break;
-    case WARNING:
+    case LogLevel::WARNING:
         printf("\033[33m[WARN] "); // Yellow
         break;
-    case ERROR:
+    case LogLevel::ERROR:
         printf("\033[31m[ERROR] "); // Red
         break;
-    case CRITICAL:
+    case LogLevel::CRITICAL:
         printf("\033[1;31m[CRIT] "); // Bold Red
         break;
     default:
@@ -49,4 +41,9 @@ void Logger::print(int level, const char *fmt, ...)
     vprintf(fmt, args);
     va_end(args);
     printf("\033[0m");
+}
+
+void Logger::set_level(LogLevel level)
+{
+    m_level = level;
 }

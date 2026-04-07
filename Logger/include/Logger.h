@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include "pico/stdlib.h"
 
-enum LogLevel
+enum class LogLevel
 {
     TRACE = 0,
     DEBUG,
@@ -17,14 +17,10 @@ enum LogLevel
 class Logger
 {
 private:
-    int m_level;
-    Logger(int level);
+    Logger()=delete;
+    static LogLevel m_level;
 
 public:
-    // Prevent copying or assigning the singleton instance
-    Logger(const Logger &) = delete;
-    Logger &operator=(const Logger &) = delete;
-
-    static Logger &getInstance(int level = TRACE);
-    void print(int level, const char *fmt, ...);
+    static void print(LogLevel level, const char *fmt, ...);
+    static void set_level(LogLevel level);
 };
