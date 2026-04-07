@@ -102,14 +102,17 @@ void CC1101::init_pins()
 
 void CC1101::set_myaddr(uint8_t addr)
 {
+    m_address = addr;
     write_single_byte(CC1101_ADDR, addr); // stores MyAddr in the cc1101
 }
 void CC1101::set_channel(uint8_t channel)
 {
+    m_channel = channel;
     write_single_byte(CC1101_CHANNR, channel); // stores the new channel # in the cc1101
 }
 void CC1101::set_ISM(uint8_t ism_freq)
 {
+    m_freq = ism_freq;
     uint8_t freq2, freq1, freq0;
     switch (ism_freq) // loads the RF freq which is defined in cc1101_freq_select
     {
@@ -150,7 +153,7 @@ void CC1101::set_ISM(uint8_t ism_freq)
 }
 void CC1101::set_mode(uint8_t mode)
 {
-
+    m_mode = mode;
     switch (mode)
     {
     case 0x01:
