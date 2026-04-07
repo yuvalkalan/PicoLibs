@@ -4,6 +4,12 @@ Logger::Logger(int level) : m_level(level)
 {
 }
 
+Logger &Logger::getInstance(int level)
+{
+    static Logger instance(level);
+    return instance;
+}
+
 void Logger::print(int level, const char *fmt, ...)
 {
     // print data based on the level
@@ -42,5 +48,5 @@ void Logger::print(int level, const char *fmt, ...)
     va_start(args, fmt);
     vprintf(fmt, args);
     va_end(args);
-    printf("\033[0m\n");
+    printf("\033[0m");
 }

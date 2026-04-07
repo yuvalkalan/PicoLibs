@@ -18,8 +18,13 @@ class Logger
 {
 private:
     int m_level;
+    Logger(int level);
 
 public:
-    Logger(int level);
+    // Prevent copying or assigning the singleton instance
+    Logger(const Logger &) = delete;
+    Logger &operator=(const Logger &) = delete;
+
+    static Logger &getInstance(int level = TRACE);
     void print(int level, const char *fmt, ...);
 };
