@@ -73,7 +73,6 @@ protected: // hardware api
     void reset();
 
 protected: // software configuration api
-    void set_myaddr(uint8_t addr);
     void set_channel(uint8_t channel);
     void set_ISM(uint8_t ism_freq);
     void set_mode(uint8_t mode);
@@ -90,6 +89,7 @@ protected: // transmit and receive sub-functions
     int8_t get_live_rssi();
 
 public: // transmit and receive functions
+    void set_myaddr(uint8_t addr);
     bool send_packet(Packet &packet);
     bool get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi);
     bool packet_available();

@@ -1,78 +1,4 @@
-#pragma once
-#include "CC1101.h"
-#include <unordered_map>
-#include <algorithm>
-#include <vector>
-
-#define TCP_FLAG_SYN 0b00000001       // syn flag bit
-#define TCP_FLAG_ACK 0b00000010       // ack flag bit
-#define TCP_FLAG_RSSI_LOW 0b00000100  // rssi low flag bit
-#define TCP_FLAG_RSSI_HIGH 0b00001000 // rssi high flag bit
-#define TCP_FLAG_START 0b00010000     // start of message flag bit
-
-#define MAX_MSG_SIZE 1024 // make sure this is even!
-#define TCP_RTO 100       // retransmission timeout in ms
-#define TCP_MAX_RETRIES 5
-#define TRACKER_T uint16_t
-
-struct __attribute__((packed)) TCPPacketHeader : public PacketHeader
-{
-    uint8_t flags = 0;
-    TRACKER_T ack = 0;
-    TRACKER_T syn = 0;
-};
-
-struct __attribute__((packed)) TCPPacket
-{
-    TCPPacketHeader header;
-    uint8_t payload[CC1101_FIFOBUFFER - sizeof(header)];
-};
-
-struct __attribute__((packed)) TCPPacketHandler
-{
-    TCPPacket packet;
-    uint32_t timestamp_ms = 0;
-    uint8_t retries = 0;
-};
-
-struct __attribute__((packed)) Msg
-{
-    uint16_t length;
-    uint8_t data[MAX_MSG_SIZE - sizeof(length)] = {0};
-};
-
-uint16_t generate_random_number()
-{
-    // Simple random number generator using the current time as a seed
-    return (uint16_t)(to_ms_since_boot(get_absolute_time()) & 0xFFFF);
-}
-
-class ConnectCC1101 : public CC1101
-{
-
-private:
-    TRACKER_T m_ack;
-    TRACKER_T m_syn;
-    uint8_t m_tx_power_dbm;
-    uint8_t m_rx_addr;
-    uint16_t m_bytes_received = 0;
-    uint16_t m_msg_length = 0;
-    std::unordered_map<TRACKER_T, TCPPacketHandler> sending_packets;
-    std::unordered_map<TRACKER_T, TCPPacket> received_packets;
-
-private:
-    void clear_rx_data();
-
-public:
-    void send(Msg &msg);
-    bool receive(Msg &msg, uint32_t timeout_ms);
-    void update();
-    bool connect(uint8_t rx_addr, uint32_t timeout_ms);
-    bool accept(uint32_t timeout_ms);
-
-public:
-    ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
-};
+#include "ConnectCC1101.h"
 
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
@@ -84,14 +10,14 @@ void ConnectCC1101::send(Msg &msg)
     // first send msg length
     uint16_t total_length = msg.length + sizeof(msg.length);
     uint16_t bytes_sent = 0;
-    printf("Sending message of length %d bytes\n", total_length);
+    // printf("Sending message of length %d bytes\n", total_length);
     while (bytes_sent < total_length)
     {
         TCPPacketHandler handler;
         handler.packet.header.ack = m_ack;
         handler.packet.header.syn = m_syn++;
-        handler.packet.header.flags = !bytes_sent ? TCP_FLAG_START : 0; // start flag for the first packet, data flag for subsequent packets
-        handler.packet.header.rx_addr = m_rx_addr;                      // set receiver address
+        handler.packet.header.flags.start = !bytes_sent; // start flag for the first packet
+        handler.packet.header.rx_addr = m_rx_addr;       // set receiver address
         uint16_t bytes_to_send = std::min((uint16_t)(CC1101_MAX_PACKET_LENGTH - sizeof(TCPPacketHeader)), (uint16_t)(total_length - bytes_sent));
         handler.packet.header.length = sizeof(TCPPacketHeader) + bytes_to_send;
         memcpy(handler.packet.payload, (uint8_t *)&msg + bytes_sent, bytes_to_send);
@@ -135,7 +61,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     while ((!m_msg_length || m_bytes_received < m_msg_length) && to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         update();
-        printf("Received %d/%d bytes\n", m_bytes_received, m_msg_length);
+        // printf("Received %d/%d bytes\n", m_bytes_received, m_msg_length);
     }
     if (!m_msg_length || m_bytes_received < m_msg_length)
     {
@@ -177,26 +103,26 @@ void ConnectCC1101::update()
     while (to_ms_since_boot(get_absolute_time()) - start_time < 10)
         while (packet_available())
         {
-            printf("got packet!\n");
+            // printf("got packet!\n");
             uint8_t sender, lqi;
             int8_t rssi_dbm;
             TCPPacket packet;
 
             if (get_payload((Packet &)packet, rssi_dbm, lqi))
             {
-                if (packet.header.flags & TCP_FLAG_START) // if this is the first packet of a message, extract the total message length
+                if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
                 {
                     m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
-                    printf("Start of new message detected, total length: %d bytes\n", m_msg_length);
+                    // printf("Start of new message detected, total length: %d bytes\n", m_msg_length);
                 }
                 // check if it's an ack for a sent packet
-                if (packet.header.flags & TCP_FLAG_ACK)
+                if (packet.header.flags.ack)
                 {
-                    printf("Received ACK for SYN %d\n", packet.header.ack);
+                    // printf("Received ACK for SYN %d\n", packet.header.ack);
                     // check if this packet exists in sending_packets
                     if (sending_packets.find(packet.header.ack) != sending_packets.end())
                     {
-                        printf("ACK matches a sent packet, removing from sending queue\n");
+                        // printf("ACK matches a sent packet, removing from sending queue\n");
                         sending_packets.erase(packet.header.ack);
                     }
                     else
@@ -211,7 +137,7 @@ void ConnectCC1101::update()
                     ack_packet.header.rx_addr = packet.header.tx_addr; // reply to sender
                     ack_packet.header.ack = packet.header.syn;
                     ack_packet.header.syn = m_syn++;
-                    ack_packet.header.flags = TCP_FLAG_ACK;                      // ack packet
+                    ack_packet.header.flags.ack = true;                          // ack packet
                     ack_packet.header.length = sizeof(TCPPacketHeader);          // no payload
                     sending_packets[ack_packet.header.syn] = {ack_packet, 0, 0}; // add ack packet to sending queue for reliability
                     // send_packet((Packet &)ack_packet);
@@ -240,9 +166,9 @@ void ConnectCC1101::update()
             }
             else
             {
-                printf("sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+                // printf("sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
                 send_packet((Packet &)(it->second.packet));
-                if (it->second.packet.header.flags & TCP_FLAG_ACK)
+                if (it->second.packet.header.flags.ack)
                 {
                     it = sending_packets.erase(it);
                     continue;
@@ -275,7 +201,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
     syn_packet.header.syn = m_syn;
     syn_packet.header.ack = 0;
-    syn_packet.header.flags = TCP_FLAG_SYN;
+    syn_packet.header.flags.syn = true;
 
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
     bool syn_ack_received = false;
@@ -298,7 +224,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
                 if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                 {
                     // וידוא שמדובר ב-SYN-ACK ושהוא מאשר את ה-SYN שלנו
-                    if ((recv_packet.header.flags & (TCP_FLAG_SYN | TCP_FLAG_ACK)) == (TCP_FLAG_SYN | TCP_FLAG_ACK))
+                    if ((recv_packet.header.flags.syn && recv_packet.header.flags.ack))
                     {
                         if (recv_packet.header.ack == m_syn)
                         {
@@ -314,7 +240,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
     if (!syn_ack_received)
     {
-        printf("Connection failed: SYN-ACK timeout\n");
+        // printf("Connection failed: SYN-ACK timeout\n");
         return false;
     }
 
@@ -326,17 +252,17 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
     ack_packet.header.syn = m_syn++; // ניתן להשתמש ב-syn הבא שלנו כ-ack number
     ack_packet.header.ack = m_ack;
-    ack_packet.header.flags = TCP_FLAG_ACK;
+    ack_packet.header.flags.ack = true;
 
     send_packet((Packet &)ack_packet);
 
-    printf("Connected successfully to address: 0x%02X\n", m_rx_addr);
+    // printf("Connected successfully to address: 0x%02X\n", m_rx_addr);
     return true;
 }
 bool ConnectCC1101::accept(uint32_t timeout_ms)
 {
-    uint32_t start_time = to_ms_since_boot(get_absolute_time());
     bool syn_received = false;
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
 
     // 1. המתנה לפקטת SYN
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
@@ -352,7 +278,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
                 if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                 {
                     // בדיקה שזו פקטת SYN טהורה
-                    if ((recv_packet.header.flags & TCP_FLAG_SYN) && !(recv_packet.header.flags & TCP_FLAG_ACK))
+                    if ((recv_packet.header.flags.syn) && !(recv_packet.header.flags.ack))
                     {
                         m_rx_addr = recv_packet.header.tx_addr; // השולח הוא כעת יעד התקשורת שלנו
                         m_ack = recv_packet.header.syn;
@@ -379,7 +305,8 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 
     syn_ack_packet.header.syn = m_syn;
     syn_ack_packet.header.ack = m_ack;
-    syn_ack_packet.header.flags = TCP_FLAG_SYN | TCP_FLAG_ACK;
+    syn_ack_packet.header.flags.syn = true;
+    syn_ack_packet.header.flags.ack = true;
 
     send_packet((Packet &)syn_ack_packet);
 
@@ -399,11 +326,11 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
                 if (ack_packet.header.length >= sizeof(TCPPacketHeader))
                 {
                     // בדיקה שזהו ACK סופי המאשר את ה-SYN של השרת
-                    if ((ack_packet.header.flags & TCP_FLAG_ACK) && !(ack_packet.header.flags & TCP_FLAG_SYN))
+                    if ((ack_packet.header.flags.ack) && !(ack_packet.header.flags.syn))
                     {
                         if (ack_packet.header.ack == m_syn)
                         {
-                            printf("Connection established. Client: 0x%02X\n", m_rx_addr);
+                            // printf("Connection established. Client: 0x%02X\n", m_rx_addr);
                             return true;
                         }
                     }
@@ -412,6 +339,19 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
         }
     }
     m_rx_addr = 0; // איפוס כתובת הלקוח במידה והחיבור נכשל
-    printf("Connection failed: Missing final ACK\n");
+    // printf("Connection failed: Missing final ACK\n");
     return false;
+}
+bool ConnectCC1101::is_connected()
+{
+    return m_rx_addr != 0;
+}
+bool ConnectCC1101::is_idle()
+{
+    return sending_packets.empty() && received_packets.empty();
+}
+
+bool ConnectCC1101::have_data()
+{
+    return !received_packets.empty();
 }

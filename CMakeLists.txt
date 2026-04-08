@@ -38,8 +38,10 @@ pico_sdk_init()
 
 set(MY_LIBRARIES
         CC1101
+        ConnectCC1101
         SerialIn
         UniqueID
+        Logger
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
@@ -73,4 +75,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         )
 
 pico_add_extra_outputs(${PROJECT_NAME})
-
