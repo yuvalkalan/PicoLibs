@@ -8,6 +8,7 @@ uint16_t generate_random_number()
 
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
+    calibrate_tx_speed();
 }
 
 void ConnectCC1101::send(Msg &msg)
@@ -60,6 +61,26 @@ void ConnectCC1101::clear_rx()
     received_packets.clear();
 }
 
+bool ConnectCC1101::can_transmit()
+{
+    return get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TRANSMIT_TIMEOUT_FACTOR;
+}
+
+void ConnectCC1101::calibrate_tx_speed()
+{
+    // fill the tx buffer with blob and mesure time
+    Packet packet;
+    packet.header.length = CC1101_MAX_PACKET_LENGTH;
+    auto start_time_us = get_absolute_time();
+    for (int i = 0; i < 10; i++)
+    {
+        send_packet(packet);
+    }
+    auto end_time_us = get_absolute_time();
+    m_tx_timeout_us = (uint32_t)((end_time_us - start_time_us) / 10);
+    Logger::print(LogLevel::DEBUG, "tx timeout: %d us\n", m_tx_timeout_us);
+}
+
 bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 {
     // wait for packets and reassemble msg
@@ -107,24 +128,21 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
 // }
 
-void ConnectCC1101::update()
+void ConnectCC1101::update_rx()
 {
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
-    auto start_time = to_ms_since_boot(get_absolute_time());
-    while (to_ms_since_boot(get_absolute_time()) - start_time < 10)
+    do
+    {
         while (packet_available())
         {
-            // printf("got packet!\n");
             uint8_t sender, lqi;
             int8_t rssi_dbm;
             TCPPacket packet;
-
             if (get_payload((Packet &)packet, rssi_dbm, lqi))
             {
                 if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
                 {
                     m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
-                    // printf("Start of new message detected, total length: %d bytes\n", m_msg_length);
                 }
                 // check if it's an ack for a sent packet
                 if (packet.header.flags.ack)
@@ -133,38 +151,50 @@ void ConnectCC1101::update()
                     // check if this packet exists in sending_packets
                     if (sending_packets.find(packet.header.ack) != sending_packets.end())
                     {
-                        // printf("ACK matches a sent packet, removing from sending queue\n");
+                        Logger::print(LogLevel::TRACE, "got ack for packet with syn %d\n", packet.header.ack);
                         sending_packets.erase(packet.header.ack);
                     }
                     else
                     {
-                        printf("ACK does not match any sent packet, ignoring\n");
+                        Logger::print(LogLevel::WARNING, "ACK does not match any sent packet, ignoring\n");
                     }
                 }
                 else
                 {
                     // send ack
-                    TCPPacket ack_packet;
-                    ack_packet.header.rx_addr = packet.header.tx_addr; // reply to sender
-                    ack_packet.header.ack = packet.header.syn;
-                    ack_packet.header.syn = m_syn++;
-                    ack_packet.header.flags.ack = true;                          // ack packet
-                    ack_packet.header.length = sizeof(TCPPacketHeader);          // no payload
-                    sending_packets[ack_packet.header.syn] = {ack_packet, 0, 0}; // add ack packet to sending queue for reliability
+                    TCPPacketHandler ack_packet;
+                    ack_packet.packet.header.rx_addr = packet.header.tx_addr; // reply to sender
+                    ack_packet.packet.header.ack = packet.header.syn;
+                    ack_packet.packet.header.syn = m_syn++;
+                    ack_packet.packet.header.flags.ack = true;                  // ack packet
+                    ack_packet.packet.header.length = sizeof(TCPPacketHeader);  // no payload
+                    sending_packets[ack_packet.packet.header.syn] = ack_packet; // add ack packet to sending queue for reliability
                     // send_packet((Packet &)ack_packet);
 
+                    if ((int16_t)(packet.header.syn - m_ack) <= 0)
+                    {
+                        Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
+                        continue;
+                    }
+
                     // add packet to received_packets
+
                     // check for duplicates
                     if (received_packets.find(packet.header.syn) != received_packets.end())
                     {
-                        printf("Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
+                        Logger::print(LogLevel::WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
                         continue;
                     }
                     m_bytes_received += packet.header.length - sizeof(TCPPacketHeader);
                     received_packets[packet.header.syn] = packet;
                 }
             }
+            m_last_receive_us = get_absolute_time();
         }
+    } while (!can_transmit());
+}
+void ConnectCC1101::update_tx()
+{
     // send pending packets
     for (auto it = sending_packets.begin(); it != sending_packets.end();)
     {
@@ -196,6 +226,12 @@ void ConnectCC1101::update()
             ++it;
         }
     }
+}
+
+void ConnectCC1101::update()
+{
+    update_rx();
+    update_tx();
 }
 
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)

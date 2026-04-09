@@ -9,6 +9,7 @@
 #define TCP_RTO 100       // retransmission timeout in ms
 #define TCP_MAX_RETRIES 5
 #define TRACKER_T uint16_t
+#define TRANSMIT_TIMEOUT_FACTOR 4
 
 uint16_t generate_random_number();
 
@@ -61,9 +62,17 @@ private:
     uint16_t m_msg_length = 0;
     std::unordered_map<TRACKER_T, TCPPacketHandler> sending_packets;
     std::unordered_map<TRACKER_T, TCPPacket> received_packets;
+    uint32_t m_tx_timeout_us;
+    absolute_time_t m_last_receive_us;
+    uint8_t m_packet_group_id = 0;
+    uint8_t m_packet_group_next = 0;
 
 private:
+    void update_tx();
+    void update_rx();
     void clear_rx();
+    bool can_transmit();
+    void calibrate_tx_speed();
 
 public:
     void send(Msg &msg);
