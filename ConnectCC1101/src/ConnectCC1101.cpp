@@ -53,7 +53,7 @@ void ConnectCC1101::send(Msg &msg)
     // }
 }
 
-void ConnectCC1101::clear_rx_data()
+void ConnectCC1101::clear_rx()
 {
     m_bytes_received = 0;
     m_msg_length = 0;
@@ -72,7 +72,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     if (!m_msg_length || m_bytes_received < m_msg_length)
     {
         printf("Message receive timed out\n");
-        clear_rx_data();
+        clear_rx();
         return false;
     }
     // reassemble msg
@@ -99,7 +99,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
             break;
     }
 
-    clear_rx_data();
+    clear_rx();
     return true;
 }
 
@@ -200,27 +200,24 @@ void ConnectCC1101::update()
 
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
-    m_rx_addr = rx_addr;
+    // clear data
     m_syn = generate_random_number();
-    m_bytes_received = 0;
+    m_rx_addr = 0;
+    clear_rx();
+    sending_packets.clear();
 
-    // 1. הכנת פקטת SYN
+    // send SYN packet ----------------------------------------------------------------------------
     TCPPacket syn_packet;
     syn_packet.header.length = sizeof(TCPPacketHeader);
-    syn_packet.header.rx_addr = m_rx_addr;
-    syn_packet.header.tx_addr = m_address; // מוגדר במחלקת האב CC1101
-
+    syn_packet.header.rx_addr = rx_addr;
     syn_packet.header.syn = m_syn;
     syn_packet.header.ack = 0;
     syn_packet.header.flags.syn = true;
-
-    uint32_t start_time = to_ms_since_boot(get_absolute_time());
-    bool syn_ack_received = false;
-
-    // שליחת פקטת ה-SYN על ידי קאסטינג למבנה הבסיס
     send_packet((Packet &)syn_packet);
 
-    // 2. המתנה לפקטת SYN-ACK
+    // wait for SYN-ACK packet --------------------------------------------------------------------
+    uint32_t start_time = to_ms_since_boot(get_absolute_time());
+    bool syn_ack_received = false;
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         if (packet_available())
@@ -231,15 +228,13 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
             if (get_payload((Packet &)recv_packet, rssi_dbm, lqi))
             {
-                // וידוא שהפקטה מספיק גדולה כדי להכיל Header של TCP
                 if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                 {
-                    // וידוא שמדובר ב-SYN-ACK ושהוא מאשר את ה-SYN שלנו
-                    if ((recv_packet.header.flags.syn && recv_packet.header.flags.ack))
+                    if (recv_packet.header.flags.syn && recv_packet.header.flags.ack && recv_packet.header.tx_addr == rx_addr)
                     {
                         if (recv_packet.header.ack == m_syn)
                         {
-                            m_ack = recv_packet.header.syn; // שמירת ה-Sequence של השרת
+                            m_ack = recv_packet.header.syn;
                             syn_ack_received = true;
                             break;
                         }
@@ -251,32 +246,28 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
     if (!syn_ack_received)
     {
-        // printf("Connection failed: SYN-ACK timeout\n");
+        Logger::print(LogLevel::ERROR, "Connection failed: SYN-ACK timeout\n");
         return false;
     }
-
-    // 3. שליחת ACK סופי לשרת
+    // send ACK packet ----------------------------------------------------------------------------
     TCPPacket ack_packet;
     ack_packet.header.length = sizeof(TCPPacketHeader);
-    ack_packet.header.rx_addr = m_rx_addr;
-    ack_packet.header.tx_addr = m_address;
-
-    ack_packet.header.syn = m_syn++; // ניתן להשתמש ב-syn הבא שלנו כ-ack number
+    ack_packet.header.rx_addr = rx_addr;
+    ack_packet.header.syn = ++m_syn;
     ack_packet.header.ack = m_ack;
     ack_packet.header.flags.ack = true;
-
     send_packet((Packet &)ack_packet);
 
-    // printf("Connected successfully to address: 0x%02X\n", m_rx_addr);
+    m_rx_addr = rx_addr;
+    Logger::print(LogLevel::TRACE, "Connected successfully to address: 0x%02X, syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
     return true;
 }
 
 bool ConnectCC1101::accept(uint32_t timeout_ms)
 {
+    // wait for syn packet ------------------------------------------------------------------------
     bool syn_received = false;
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
-
-    // 1. המתנה לפקטת SYN
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         if (packet_available())
@@ -289,10 +280,9 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
             {
                 if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                 {
-                    // בדיקה שזו פקטת SYN טהורה
                     if ((recv_packet.header.flags.syn) && !(recv_packet.header.flags.ack))
                     {
-                        m_rx_addr = recv_packet.header.tx_addr; // השולח הוא כעת יעד התקשורת שלנו
+                        m_rx_addr = recv_packet.header.tx_addr;
                         m_ack = recv_packet.header.syn;
                         syn_received = true;
                         break;
@@ -301,31 +291,27 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
             }
         }
     }
-
     if (!syn_received)
     {
-        return false; // פסק זמן - לא התקבלה בקשת התחברות
+        Logger::print(LogLevel::ERROR, "Connection failed: SYN timeout\n");
+        m_rx_addr = 0;
+        return false;
     }
 
-    // 2. שליחת פקטת SYN-ACK
-    m_syn = generate_random_number();
+    // send SYN-ACK packet ------------------------------------------------------------------------
 
+    m_syn = generate_random_number();
     TCPPacket syn_ack_packet;
     syn_ack_packet.header.length = sizeof(TCPPacketHeader);
     syn_ack_packet.header.rx_addr = m_rx_addr; // שולחים חזרה ללקוח
-    syn_ack_packet.header.tx_addr = m_address;
-
     syn_ack_packet.header.syn = m_syn;
     syn_ack_packet.header.ack = m_ack;
     syn_ack_packet.header.flags.syn = true;
     syn_ack_packet.header.flags.ack = true;
-
     send_packet((Packet &)syn_ack_packet);
 
-    // 3. המתנה ל-ACK סופי מהלקוח
-    uint32_t ack_start_time = to_ms_since_boot(get_absolute_time());
-
-    while (to_ms_since_boot(get_absolute_time()) - ack_start_time < (TCP_RTO * TCP_MAX_RETRIES))
+    // wait for ACK -------------------------------------------------------------------------------
+    while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         if (packet_available())
         {
@@ -337,12 +323,12 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
             {
                 if (ack_packet.header.length >= sizeof(TCPPacketHeader))
                 {
-                    // בדיקה שזהו ACK סופי המאשר את ה-SYN של השרת
                     if ((ack_packet.header.flags.ack) && !(ack_packet.header.flags.syn))
                     {
-                        if (ack_packet.header.ack == m_syn)
+                        if (ack_packet.header.ack == m_syn && ack_packet.header.tx_addr == m_rx_addr)
                         {
-                            // printf("Connection established. Client: 0x%02X\n", m_rx_addr);
+                            m_syn++;
+                            Logger::print(LogLevel::DEBUG, "Connection established. Client: 0x%02X syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
                             return true;
                         }
                     }
@@ -350,8 +336,8 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
             }
         }
     }
-    m_rx_addr = 0; // איפוס כתובת הלקוח במידה והחיבור נכשל
-    // printf("Connection failed: Missing final ACK\n");
+    m_rx_addr = 0;
+    Logger::print(LogLevel::ERROR, "Connection failed: ACK timeout\n");
     return false;
 }
 

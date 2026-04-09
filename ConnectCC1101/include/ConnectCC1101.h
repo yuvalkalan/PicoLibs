@@ -1,5 +1,6 @@
 #pragma once
 #include "CC1101.h"
+#include "Logger.h"
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
@@ -62,7 +63,7 @@ private:
     std::unordered_map<TRACKER_T, TCPPacket> received_packets;
 
 private:
-    void clear_rx_data();
+    void clear_rx();
 
 public:
     void send(Msg &msg);
