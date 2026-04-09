@@ -9,6 +9,8 @@
 #define TCP_MAX_RETRIES 5
 #define TRACKER_T uint16_t
 
+uint16_t generate_random_number();
+
 struct __attribute__((packed)) TCPFlags
 {
     bool syn : 1;       // syn flag bit
@@ -45,12 +47,6 @@ struct __attribute__((packed)) Msg
     uint16_t length;
     uint8_t data[MAX_MSG_SIZE - sizeof(length)] = {0};
 };
-
-uint16_t generate_random_number()
-{
-    // Simple random number generator using the current time as a seed
-    return (uint16_t)(to_ms_since_boot(get_absolute_time()) & 0xFFFF);
-}
 
 class ConnectCC1101 : public CC1101
 {

@@ -1,5 +1,11 @@
 #include "ConnectCC1101.h"
 
+uint16_t generate_random_number()
+{
+    // Simple random number generator using the current time as a seed
+    return (uint16_t)(to_ms_since_boot(get_absolute_time()) & 0xFFFF);
+}
+
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
 }
@@ -96,6 +102,11 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     clear_rx_data();
     return true;
 }
+
+// void ConnectCC1101::update_tx(){
+
+// }
+
 void ConnectCC1101::update()
 {
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
@@ -259,6 +270,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     // printf("Connected successfully to address: 0x%02X\n", m_rx_addr);
     return true;
 }
+
 bool ConnectCC1101::accept(uint32_t timeout_ms)
 {
     bool syn_received = false;
@@ -342,10 +354,12 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     // printf("Connection failed: Missing final ACK\n");
     return false;
 }
+
 bool ConnectCC1101::is_connected()
 {
     return m_rx_addr != 0;
 }
+
 bool ConnectCC1101::is_idle()
 {
     return sending_packets.empty() && received_packets.empty();
