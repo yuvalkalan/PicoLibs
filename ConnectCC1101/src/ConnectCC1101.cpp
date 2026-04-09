@@ -3,7 +3,15 @@
 uint16_t generate_random_number()
 {
     // Simple random number generator using the current time as a seed
-    return (uint16_t)(to_ms_since_boot(get_absolute_time()) & 0xFFFF);
+    static uint64_t rnd;
+    rnd += get_absolute_time();
+    // combine all seed bytes to return random number
+    uint16_t result = 0;
+    for (int i = 0; i < 4; i++)
+    {
+        result += (rnd >> (i * 16)) & 0xFFFF;
+    }
+    return result;
 }
 
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
@@ -116,6 +124,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
         memcpy((uint8_t *)&msg + bytes_received, packet.payload, bytes_to_copy);
         bytes_received += bytes_to_copy;
+        m_ack = packet.header.syn;
         if (bytes_received >= m_msg_length)
             break;
     }
@@ -131,71 +140,76 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 void ConnectCC1101::update_rx()
 {
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
-    do
+    while (packet_available())
     {
-        while (packet_available())
+        uint8_t sender, lqi;
+        int8_t rssi_dbm;
+        TCPPacket packet;
+        if (get_payload((Packet &)packet, rssi_dbm, lqi))
         {
-            uint8_t sender, lqi;
-            int8_t rssi_dbm;
-            TCPPacket packet;
-            if (get_payload((Packet &)packet, rssi_dbm, lqi))
+            if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
             {
-                if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
+                m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
+            }
+            // check if it's an ack for a sent packet
+            if (packet.header.flags.ack)
+            {
+                // printf("Received ACK for SYN %d\n", packet.header.ack);
+                // check if this packet exists in sending_packets
+                if (sending_packets.find(packet.header.ack) != sending_packets.end())
                 {
-                    m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
-                }
-                // check if it's an ack for a sent packet
-                if (packet.header.flags.ack)
-                {
-                    // printf("Received ACK for SYN %d\n", packet.header.ack);
-                    // check if this packet exists in sending_packets
-                    if (sending_packets.find(packet.header.ack) != sending_packets.end())
-                    {
-                        Logger::print(LogLevel::TRACE, "got ack for packet with syn %d\n", packet.header.ack);
-                        sending_packets.erase(packet.header.ack);
-                    }
-                    else
-                    {
-                        Logger::print(LogLevel::WARNING, "ACK does not match any sent packet, ignoring\n");
-                    }
+                    Logger::print(LogLevel::TRACE, "got ack for packet with syn %d\n", packet.header.ack);
+                    sending_packets.erase(packet.header.ack);
                 }
                 else
                 {
-                    // send ack
-                    TCPPacketHandler ack_packet;
-                    ack_packet.packet.header.rx_addr = packet.header.tx_addr; // reply to sender
-                    ack_packet.packet.header.ack = packet.header.syn;
-                    ack_packet.packet.header.syn = m_syn++;
-                    ack_packet.packet.header.flags.ack = true;                  // ack packet
-                    ack_packet.packet.header.length = sizeof(TCPPacketHeader);  // no payload
-                    sending_packets[ack_packet.packet.header.syn] = ack_packet; // add ack packet to sending queue for reliability
-                    // send_packet((Packet &)ack_packet);
-
-                    if ((int16_t)(packet.header.syn - m_ack) <= 0)
-                    {
-                        Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
-                        continue;
-                    }
-
-                    // add packet to received_packets
-
-                    // check for duplicates
-                    if (received_packets.find(packet.header.syn) != received_packets.end())
-                    {
-                        Logger::print(LogLevel::WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
-                        continue;
-                    }
-                    m_bytes_received += packet.header.length - sizeof(TCPPacketHeader);
-                    received_packets[packet.header.syn] = packet;
+                    Logger::print(LogLevel::WARNING, "ACK does not match any sent packet, ignoring\n");
                 }
             }
-            m_last_receive_us = get_absolute_time();
+            else
+            {
+
+                pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
+
+                // update m_ack
+                if ((int16_t)(packet.header.syn - m_ack) < 0)
+                {
+                    Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
+                    continue;
+                }
+                // add packet to received_packets
+
+                // check for duplicates
+                if (received_packets.find(packet.header.syn) != received_packets.end())
+                {
+                    Logger::print(LogLevel::WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
+                    continue;
+                }
+                m_bytes_received += packet.header.length - sizeof(TCPPacketHeader);
+                received_packets[packet.header.syn] = packet;
+            }
         }
-    } while (!can_transmit());
+        m_last_receive_us = get_absolute_time();
+    }
 }
 void ConnectCC1101::update_tx()
 {
     // send pending packets
+    if (!can_transmit())
+        return;
+    // Drain the ACK queue first (highest priority)
+    for (const auto &ack : pending_acks)
+    {
+        TCPPacket ack_packet;
+        ack_packet.header.rx_addr = ack.addr;
+        ack_packet.header.ack = ack.syn;
+        ack_packet.header.syn = m_syn;
+        ack_packet.header.flags.ack = true;
+        ack_packet.header.length = sizeof(TCPPacketHeader);
+        send_packet((Packet &)ack_packet);
+    }
+    pending_acks.clear();
+
     for (auto it = sending_packets.begin(); it != sending_packets.end();)
     {
         if (to_ms_since_boot(get_absolute_time()) - it->second.timestamp_ms > TCP_RTO)
@@ -207,8 +221,11 @@ void ConnectCC1101::update_tx()
             }
             else
             {
-                // printf("sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+                printf("sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+                // if (generate_random_number() % 20 != 0)
                 send_packet((Packet &)(it->second.packet));
+                // else
+                // printf("dropped packet\n");
                 if (it->second.packet.header.flags.ack)
                 {
                     it = sending_packets.erase(it);
@@ -217,8 +234,6 @@ void ConnectCC1101::update_tx()
                 it->second.timestamp_ms = to_ms_since_boot(get_absolute_time());
                 it->second.retries++;
                 ++it;
-                break;
-                // sleep_ms(10); // small delay to avoid flooding the channel with retransmissions
             }
         }
         else

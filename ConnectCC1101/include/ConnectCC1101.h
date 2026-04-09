@@ -50,6 +50,12 @@ struct __attribute__((packed)) Msg
     uint8_t data[MAX_MSG_SIZE - sizeof(length)] = {0};
 };
 
+struct PendingAck
+{
+    uint8_t addr;
+    TRACKER_T syn;
+};
+
 class ConnectCC1101 : public CC1101
 {
 
@@ -62,6 +68,7 @@ private:
     uint16_t m_msg_length = 0;
     std::unordered_map<TRACKER_T, TCPPacketHandler> sending_packets;
     std::unordered_map<TRACKER_T, TCPPacket> received_packets;
+    std::vector<PendingAck> pending_acks;
     uint32_t m_tx_timeout_us;
     absolute_time_t m_last_receive_us;
     uint8_t m_packet_group_id = 0;
