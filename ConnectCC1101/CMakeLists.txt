@@ -11,6 +11,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib
+        pico_rand
         hardware_spi
         hardware_i2c
         hardware_interp

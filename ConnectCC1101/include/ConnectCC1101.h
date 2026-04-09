@@ -4,14 +4,13 @@
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
+#include "pico/rand.h"
 
 #define MAX_MSG_SIZE 1024 // make sure this is even!
-#define TCP_RTO 100       // retransmission timeout in ms
+#define TCP_RTO 300       // retransmission timeout in ms
 #define TCP_MAX_RETRIES 5
 #define TRACKER_T uint16_t
 #define TRANSMIT_TIMEOUT_FACTOR 4
-
-uint16_t generate_random_number();
 
 struct __attribute__((packed)) TCPFlags
 {

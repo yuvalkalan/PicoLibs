@@ -72,6 +72,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         hardware_spi
         hardware_i2c
         hardware_interp        
+        pico_rand
         )
 
 pico_add_extra_outputs(${PROJECT_NAME})

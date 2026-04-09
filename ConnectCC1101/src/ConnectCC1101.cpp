@@ -1,19 +1,5 @@
 #include "ConnectCC1101.h"
 
-uint16_t generate_random_number()
-{
-    // Simple random number generator using the current time as a seed
-    static uint64_t rnd;
-    rnd += get_absolute_time();
-    // combine all seed bytes to return random number
-    uint16_t result = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        result += (rnd >> (i * 16)) & 0xFFFF;
-    }
-    return result;
-}
-
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
     calibrate_tx_speed();
@@ -192,6 +178,7 @@ void ConnectCC1101::update_rx()
         m_last_receive_us = get_absolute_time();
     }
 }
+
 void ConnectCC1101::update_tx()
 {
     // send pending packets
@@ -206,6 +193,7 @@ void ConnectCC1101::update_tx()
         ack_packet.header.syn = m_syn;
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
+        Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
         send_packet((Packet &)ack_packet);
     }
     pending_acks.clear();
@@ -216,16 +204,16 @@ void ConnectCC1101::update_tx()
         {
             if (it->second.retries >= TCP_MAX_RETRIES)
             {
-                printf("Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
+                Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
                 it = sending_packets.erase(it);
             }
             else
             {
-                printf("sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-                // if (generate_random_number() % 20 != 0)
-                send_packet((Packet &)(it->second.packet));
-                // else
-                // printf("dropped packet\n");
+                Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+                if (get_rand_32() % 20 != 0) // TODO: REMOVE
+                    send_packet((Packet &)(it->second.packet));
+                else
+                    printf("dropped packet\n");
                 if (it->second.packet.header.flags.ack)
                 {
                     it = sending_packets.erase(it);
@@ -252,7 +240,7 @@ void ConnectCC1101::update()
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
     // clear data
-    m_syn = generate_random_number();
+    m_syn = get_rand_32();
     m_rx_addr = 0;
     clear_rx();
     sending_packets.clear();
@@ -351,7 +339,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 
     // send SYN-ACK packet ------------------------------------------------------------------------
 
-    m_syn = generate_random_number();
+    m_syn = get_rand_32();
     TCPPacket syn_ack_packet;
     syn_ack_packet.header.length = sizeof(TCPPacketHeader);
     syn_ack_packet.header.rx_addr = m_rx_addr; // שולחים חזרה ללקוח
