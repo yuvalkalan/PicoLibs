@@ -30,8 +30,6 @@
 int8_t rssi_convert(uint8_t Rssi_hex);
 uint8_t lqi_convert(uint8_t lqi);
 
-#define TRACKER_T uint16_t
-
 struct __attribute__((packed)) PacketHeader
 {
     uint8_t length;  // length of payload + header (do not move this!)

@@ -9,7 +9,6 @@
 #define MAX_MSG_SIZE 1024 // make sure this is even!
 #define TCP_RTO 100       // retransmission timeout in ms
 #define TCP_MAX_RETRIES 5
-#define TRACKER_T uint16_t
 #define TRANSMIT_TIMEOUT_FACTOR 3
 
 struct __attribute__((packed)) TCPFlags
@@ -26,8 +25,8 @@ struct __attribute__((packed)) TCPFlags
 struct __attribute__((packed)) TCPPacketHeader : public PacketHeader
 {
     TCPFlags flags = {0};
-    TRACKER_T ack = 0;
-    TRACKER_T syn = 0;
+    uint16_t ack = 0;
+    uint16_t syn = 0;
 };
 
 struct __attribute__((packed)) TCPPacket
@@ -52,20 +51,20 @@ struct __attribute__((packed)) Msg
 struct PendingAck
 {
     uint8_t addr;
-    TRACKER_T syn;
+    uint16_t syn;
 };
 
 class ConnectCC1101 : public CC1101
 {
 
 private:
-    TRACKER_T m_ack;
-    TRACKER_T m_syn;
+    uint16_t m_ack;
+    uint16_t m_syn;
     uint8_t m_tx_power_dbm;
     uint8_t m_rx_addr = 0;
     uint16_t m_msg_length = 0;
-    std::unordered_map<TRACKER_T, TCPPacketHandler> m_sending_packets;
-    std::unordered_map<TRACKER_T, TCPPacket> m_received_packets;
+    std::unordered_map<uint16_t, TCPPacketHandler> m_sending_packets;
+    std::unordered_map<uint16_t, TCPPacket> m_received_packets;
     std::vector<PendingAck> m_pending_acks;
     uint32_t m_tx_timeout_us;
     absolute_time_t m_last_receive_us;

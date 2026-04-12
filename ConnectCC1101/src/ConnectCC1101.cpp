@@ -76,14 +76,18 @@ void ConnectCC1101::calibrate_tx_speed()
 
 uint16_t ConnectCC1101::check_bytes_received()
 {
-    // find how much data have with a syn number in a row
+    if (m_received_packets.empty())
+    {
+        return 0;
+    }
+
     uint16_t bytes_received = 0;
 
-    // find the packet with the lowest syn number
-    TRACKER_T lowest_syn = m_received_packets.begin()->first;
+    // find the packet with the lowest syn number (wrap around)
+    uint16_t lowest_syn = m_received_packets.begin()->first;
     for (const auto &entry : m_received_packets)
     {
-        if (entry.first < lowest_syn)
+        if ((int16_t)(entry.first - lowest_syn) < 0)
         {
             lowest_syn = entry.first;
         }
@@ -93,8 +97,12 @@ uint16_t ConnectCC1101::check_bytes_received()
     while (m_received_packets.find(lowest_syn) != m_received_packets.end())
     {
         bytes_received += m_received_packets[lowest_syn].header.length - sizeof(TCPPacketHeader);
+
+        // This part was already correct!
+        // In C++, unsigned integers naturally wrap around to 0 when they overflow.
         lowest_syn++;
     }
+
     return bytes_received;
 }
 
@@ -263,7 +271,7 @@ void ConnectCC1101::update()
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
     // clear data
-    m_syn = get_rand_32();
+    m_syn = 65530; // get_rand_32(); // TODO: REMOVE
     m_rx_addr = 0;
     clear_rx();
     m_sending_packets.clear();
@@ -362,7 +370,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 
     // send SYN-ACK packet ------------------------------------------------------------------------
 
-    m_syn = get_rand_32();
+    m_syn = 65530; // get_rand_32(); // TODO: REMOVE
     TCPPacket syn_ack_packet;
     syn_ack_packet.header.length = sizeof(TCPPacketHeader);
     syn_ack_packet.header.rx_addr = m_rx_addr; // שולחים חזרה ללקוח
