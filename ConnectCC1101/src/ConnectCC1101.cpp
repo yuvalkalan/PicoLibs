@@ -24,7 +24,7 @@ void ConnectCC1101::send(Msg &msg)
         memcpy(handler.packet.payload, (uint8_t *)&msg + bytes_sent, bytes_to_send);
 
         // send_packet(m_rx_addr, (uint8_t *)&handler.packet, sizeof(PacketHeader) + bytes_to_send);
-        sending_packets[handler.packet.header.syn] = handler;
+        m_sending_packets[handler.packet.header.syn] = handler;
         bytes_sent += bytes_to_send;
     }
     // // print packets in sending queue
@@ -52,7 +52,7 @@ void ConnectCC1101::clear_rx()
 {
     m_bytes_received = 0;
     m_msg_length = 0;
-    received_packets.clear();
+    m_received_packets.clear();
 }
 
 bool ConnectCC1101::can_transmit()
@@ -93,7 +93,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     // reassemble msg
 
     std::vector<TCPPacket> sorted_packets; // create a vector of received packets for sorting
-    for (auto &entry : received_packets)
+    for (auto &entry : m_received_packets)
     {
         sorted_packets.push_back(entry.second);
     }
@@ -140,12 +140,11 @@ void ConnectCC1101::update_rx()
             // check if it's an ack for a sent packet
             if (packet.header.flags.ack)
             {
-                // printf("Received ACK for SYN %d\n", packet.header.ack);
                 // check if this packet exists in sending_packets
-                if (sending_packets.find(packet.header.ack) != sending_packets.end())
+                if (m_sending_packets.find(packet.header.ack) != m_sending_packets.end())
                 {
                     Logger::print(LogLevel::TRACE, "got ack for packet with syn %d\n", packet.header.ack);
-                    sending_packets.erase(packet.header.ack);
+                    m_sending_packets.erase(packet.header.ack);
                 }
                 else
                 {
@@ -155,8 +154,7 @@ void ConnectCC1101::update_rx()
             else
             {
 
-                pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
-
+                m_pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
                 // update m_ack
                 if ((int16_t)(packet.header.syn - m_ack) < 0)
                 {
@@ -166,13 +164,14 @@ void ConnectCC1101::update_rx()
                 // add packet to received_packets
 
                 // check for duplicates
-                if (received_packets.find(packet.header.syn) != received_packets.end())
+                if (m_received_packets.find(packet.header.syn) != m_received_packets.end())
                 {
                     Logger::print(LogLevel::WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
                     continue;
                 }
+                Logger::print(LogLevel::TRACE, "received packet with syn %d\n", packet.header.syn);
                 m_bytes_received += packet.header.length - sizeof(TCPPacketHeader);
-                received_packets[packet.header.syn] = packet;
+                m_received_packets[packet.header.syn] = packet;
             }
         }
         m_last_receive_us = get_absolute_time();
@@ -185,7 +184,7 @@ void ConnectCC1101::update_tx()
     if (!can_transmit())
         return;
     // Drain the ACK queue first (highest priority)
-    for (const auto &ack : pending_acks)
+    for (const auto &ack : m_pending_acks)
     {
         TCPPacket ack_packet;
         ack_packet.header.rx_addr = ack.addr;
@@ -196,16 +195,16 @@ void ConnectCC1101::update_tx()
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
         send_packet((Packet &)ack_packet);
     }
-    pending_acks.clear();
+    m_pending_acks.clear();
 
-    for (auto it = sending_packets.begin(); it != sending_packets.end();)
+    for (auto it = m_sending_packets.begin(); it != m_sending_packets.end();)
     {
         if (to_ms_since_boot(get_absolute_time()) - it->second.timestamp_ms > TCP_RTO)
         {
             if (it->second.retries >= TCP_MAX_RETRIES)
             {
                 Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
-                it = sending_packets.erase(it);
+                it = m_sending_packets.erase(it);
             }
             else
             {
@@ -216,7 +215,7 @@ void ConnectCC1101::update_tx()
                     printf("dropped packet\n");
                 if (it->second.packet.header.flags.ack)
                 {
-                    it = sending_packets.erase(it);
+                    it = m_sending_packets.erase(it);
                     continue;
                 }
                 it->second.timestamp_ms = to_ms_since_boot(get_absolute_time());
@@ -243,7 +242,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     m_syn = get_rand_32();
     m_rx_addr = 0;
     clear_rx();
-    sending_packets.clear();
+    m_sending_packets.clear();
 
     // send SYN packet ----------------------------------------------------------------------------
     TCPPacket syn_packet;
@@ -387,10 +386,10 @@ bool ConnectCC1101::is_connected()
 
 bool ConnectCC1101::is_idle()
 {
-    return sending_packets.empty() && received_packets.empty();
+    return m_sending_packets.empty() && m_received_packets.empty();
 }
 
 bool ConnectCC1101::have_data()
 {
-    return !received_packets.empty();
+    return !m_received_packets.empty();
 }
