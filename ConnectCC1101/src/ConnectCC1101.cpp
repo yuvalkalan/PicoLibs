@@ -50,7 +50,6 @@ void ConnectCC1101::send(Msg &msg)
 
 void ConnectCC1101::clear_rx()
 {
-    m_bytes_received = 0;
     m_msg_length = 0;
     m_received_packets.clear();
 }
@@ -75,16 +74,42 @@ void ConnectCC1101::calibrate_tx_speed()
     Logger::print(LogLevel::DEBUG, "tx timeout: %d us\n", m_tx_timeout_us);
 }
 
+uint16_t ConnectCC1101::check_bytes_received()
+{
+    // find how much data have with a syn number in a row
+    uint16_t bytes_received = 0;
+
+    // find the packet with the lowest syn number
+    TRACKER_T lowest_syn = m_received_packets.begin()->first;
+    for (const auto &entry : m_received_packets)
+    {
+        if (entry.first < lowest_syn)
+        {
+            lowest_syn = entry.first;
+        }
+    }
+
+    // while have the next packet, sum the bytes
+    while (m_received_packets.find(lowest_syn) != m_received_packets.end())
+    {
+        bytes_received += m_received_packets[lowest_syn].header.length - sizeof(TCPPacketHeader);
+        lowest_syn++;
+    }
+    return bytes_received;
+}
+
 bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 {
     // wait for packets and reassemble msg
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
-    while ((!m_msg_length || m_bytes_received < m_msg_length) && to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
+    uint16_t bytes_received = 0;
+    while ((!m_msg_length || bytes_received < m_msg_length) && to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         update();
-        // printf("Received %d/%d bytes\n", m_bytes_received, m_msg_length);
+        bytes_received = check_bytes_received();
+        // printf("Received %d/%d bytes\n", bytes_received, m_msg_length);
     }
-    if (!m_msg_length || m_bytes_received < m_msg_length)
+    if (!m_msg_length || bytes_received < m_msg_length)
     {
         printf("Message receive timed out\n");
         clear_rx();
@@ -102,16 +127,16 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
               { return (int16_t)(a.header.syn - b.header.syn) < 0; }); // sort packets by syn number, taking into account wrap-around
 
     // copy sorted packets to msg buffer
-    uint16_t bytes_received = 0;
+    uint16_t bytes_copyed = 0;
     for (const auto &packet : sorted_packets)
     {
         uint16_t payload_len = packet.header.length - sizeof(TCPPacketHeader);
-        uint16_t bytes_to_copy = std::min(payload_len, (uint16_t)(m_msg_length - bytes_received));
+        uint16_t bytes_to_copy = std::min(payload_len, (uint16_t)(m_msg_length - bytes_copyed));
 
-        memcpy((uint8_t *)&msg + bytes_received, packet.payload, bytes_to_copy);
-        bytes_received += bytes_to_copy;
+        memcpy((uint8_t *)&msg + bytes_copyed, packet.payload, bytes_to_copy);
+        bytes_copyed += bytes_to_copy;
         m_ack = packet.header.syn;
-        if (bytes_received >= m_msg_length)
+        if (bytes_copyed >= m_msg_length)
             break;
     }
 
@@ -170,7 +195,6 @@ void ConnectCC1101::update_rx()
                     continue;
                 }
                 Logger::print(LogLevel::TRACE, "received packet with syn %d\n", packet.header.syn);
-                m_bytes_received += packet.header.length - sizeof(TCPPacketHeader);
                 m_received_packets[packet.header.syn] = packet;
             }
         }

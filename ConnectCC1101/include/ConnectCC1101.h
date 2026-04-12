@@ -63,7 +63,6 @@ private:
     TRACKER_T m_syn;
     uint8_t m_tx_power_dbm;
     uint8_t m_rx_addr = 0;
-    uint16_t m_bytes_received = 0;
     uint16_t m_msg_length = 0;
     std::unordered_map<TRACKER_T, TCPPacketHandler> m_sending_packets;
     std::unordered_map<TRACKER_T, TCPPacket> m_received_packets;
@@ -79,6 +78,7 @@ private:
     void clear_rx();
     bool can_transmit();
     void calibrate_tx_speed();
+    uint16_t check_bytes_received();
 
 public:
     void send(Msg &msg);
