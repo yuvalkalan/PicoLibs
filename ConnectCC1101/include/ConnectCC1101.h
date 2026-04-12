@@ -38,7 +38,6 @@ struct __attribute__((packed)) TCPPacket
 struct __attribute__((packed)) TCPPacketHandler
 {
     TCPPacket packet;
-    absolute_time_t timestamp_ms = 0;
     uint8_t retries = 0;
 };
 
@@ -68,6 +67,7 @@ private:
     std::vector<PendingAck> m_pending_acks;
     uint32_t m_tx_timeout_us;
     absolute_time_t m_last_receive_us;
+    absolute_time_t m_last_transmit_us;
     uint8_t m_packet_group_id = 0;
     uint8_t m_packet_group_next = 0;
 

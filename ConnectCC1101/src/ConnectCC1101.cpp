@@ -59,7 +59,7 @@ bool ConnectCC1101::can_transmit()
     // for all packets in m_sending_packets, check if pass the RTO
     for (const auto &entry : m_sending_packets)
     {
-        if (get_absolute_time() - entry.second.timestamp_ms < TCP_RTO_FACTOR * m_tx_timeout_us)
+        if (get_absolute_time() - m_last_transmit_us < TCP_RTO_FACTOR * m_tx_timeout_us)
         {
             return false;
         }
@@ -175,6 +175,7 @@ void ConnectCC1101::update_rx()
         TCPPacket packet;
         if (get_payload((Packet &)packet, rssi_dbm, lqi))
         {
+            m_last_receive_us = get_absolute_time();
             if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
             {
                 m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
@@ -215,7 +216,6 @@ void ConnectCC1101::update_rx()
                 m_received_packets[packet.header.syn] = packet;
             }
         }
-        m_last_receive_us = get_absolute_time();
     }
 }
 
@@ -234,10 +234,11 @@ void ConnectCC1101::update_tx()
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
-        // if (get_rand_32() % 20 != 0) // TODO: REMOVE
-        send_packet((Packet &)ack_packet);
-        // else
-        //     printf("dropped packet\n");
+        if (get_rand_32() % 20 != 0) // TODO: REMOVE
+            send_packet((Packet &)ack_packet);
+        else
+            printf("dropped packet\n");
+        m_last_transmit_us = get_absolute_time();
     }
     m_pending_acks.clear();
 
@@ -256,7 +257,7 @@ void ConnectCC1101::update_tx()
             else
                 printf("dropped packet\n");
 
-            it->second.timestamp_ms = get_absolute_time();
+            m_last_transmit_us = get_absolute_time();
             it->second.retries++;
             ++it;
         }
