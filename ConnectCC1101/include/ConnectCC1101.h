@@ -7,9 +7,9 @@
 #include "pico/rand.h"
 
 #define MAX_MSG_SIZE 1024 // make sure this is even!
-#define TCP_RTO 100       // retransmission timeout in ms
 #define TCP_MAX_RETRIES 5
-#define TRANSMIT_TIMEOUT_FACTOR 3
+#define TCP_TRANSMIT_TIMEOUT_FACTOR 3
+#define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout in ms
 
 struct __attribute__((packed)) TCPFlags
 {
@@ -38,7 +38,7 @@ struct __attribute__((packed)) TCPPacket
 struct __attribute__((packed)) TCPPacketHandler
 {
     TCPPacket packet;
-    uint32_t timestamp_ms = 0;
+    absolute_time_t timestamp_ms = 0;
     uint8_t retries = 0;
 };
 

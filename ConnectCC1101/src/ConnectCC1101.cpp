@@ -56,7 +56,16 @@ void ConnectCC1101::clear_rx()
 
 bool ConnectCC1101::can_transmit()
 {
-    return get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TRANSMIT_TIMEOUT_FACTOR;
+    // for all packets in m_sending_packets, check if pass the RTO
+    for (const auto &entry : m_sending_packets)
+    {
+        if (get_absolute_time() - entry.second.timestamp_ms < TCP_RTO_FACTOR * m_tx_timeout_us)
+        {
+            return false;
+        }
+    }
+    // check if been a while since last receive data
+    return get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TCP_TRANSMIT_TIMEOUT_FACTOR;
 }
 
 void ConnectCC1101::calibrate_tx_speed()
@@ -225,38 +234,30 @@ void ConnectCC1101::update_tx()
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
+        // if (get_rand_32() % 20 != 0) // TODO: REMOVE
         send_packet((Packet &)ack_packet);
+        // else
+        //     printf("dropped packet\n");
     }
     m_pending_acks.clear();
 
     for (auto it = m_sending_packets.begin(); it != m_sending_packets.end();)
     {
-        if (to_ms_since_boot(get_absolute_time()) - it->second.timestamp_ms > TCP_RTO)
+        if (it->second.retries >= TCP_MAX_RETRIES)
         {
-            if (it->second.retries >= TCP_MAX_RETRIES)
-            {
-                Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
-                it = m_sending_packets.erase(it);
-            }
-            else
-            {
-                Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-                if (get_rand_32() % 20 != 0) // TODO: REMOVE
-                    send_packet((Packet &)(it->second.packet));
-                else
-                    printf("dropped packet\n");
-                if (it->second.packet.header.flags.ack)
-                {
-                    it = m_sending_packets.erase(it);
-                    continue;
-                }
-                it->second.timestamp_ms = to_ms_since_boot(get_absolute_time());
-                it->second.retries++;
-                ++it;
-            }
+            Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
+            it = m_sending_packets.erase(it);
         }
         else
         {
+            Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+            if (get_rand_32() % 20 != 0) // TODO: REMOVE
+                send_packet((Packet &)(it->second.packet));
+            else
+                printf("dropped packet\n");
+
+            it->second.timestamp_ms = get_absolute_time();
+            it->second.retries++;
             ++it;
         }
     }
