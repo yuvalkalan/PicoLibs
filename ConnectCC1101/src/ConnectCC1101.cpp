@@ -176,6 +176,14 @@ void ConnectCC1101::update_rx()
         if (get_payload((Packet &)packet, rssi_dbm, lqi))
         {
             m_last_receive_us = get_absolute_time();
+            // check packet syn (filter out old msgs)
+            if ((int16_t)(packet.header.syn - m_ack) <= 0)
+            {
+                Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
+                m_pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
+                continue;
+            }
+
             if (packet.header.flags.start) // if this is the first packet of a message, extract the total message length
             {
                 m_msg_length = (packet.payload[0] | (packet.payload[1] << 8)) + sizeof(uint16_t); // assuming little-endian encoding of length, add 2 bytes for the length field itself
@@ -196,16 +204,9 @@ void ConnectCC1101::update_rx()
             }
             else
             {
-
                 m_pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
-                // update m_ack
-                if ((int16_t)(packet.header.syn - m_ack) < 0)
-                {
-                    Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
-                    continue;
-                }
-                // add packet to received_packets
 
+                // add packet to received_packets
                 // check for duplicates
                 if (m_received_packets.find(packet.header.syn) != m_received_packets.end())
                 {
@@ -234,7 +235,7 @@ void ConnectCC1101::update_tx()
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
-        if (get_rand_32() % 20 != 0) // TODO: REMOVE
+        if (get_rand_32() % 10 != 0) // TODO: REMOVE
             send_packet((Packet &)ack_packet);
         else
             printf("dropped packet\n");
@@ -252,7 +253,7 @@ void ConnectCC1101::update_tx()
         else
         {
             Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-            if (get_rand_32() % 20 != 0) // TODO: REMOVE
+            if (get_rand_32() % 10 != 0) // TODO: REMOVE
                 send_packet((Packet &)(it->second.packet));
             else
                 printf("dropped packet\n");
@@ -273,7 +274,7 @@ void ConnectCC1101::update()
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
     // clear data
-    m_syn = 65530; // get_rand_32(); // TODO: REMOVE
+    m_syn = get_rand_32();
     m_rx_addr = 0;
     clear_rx();
     m_sending_packets.clear();
@@ -372,7 +373,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 
     // send SYN-ACK packet ------------------------------------------------------------------------
 
-    m_syn = 65530; // get_rand_32(); // TODO: REMOVE
+    m_syn = get_rand_32();
     TCPPacket syn_ack_packet;
     syn_ack_packet.header.length = sizeof(TCPPacketHeader);
     syn_ack_packet.header.rx_addr = m_rx_addr; // שולחים חזרה ללקוח
