@@ -7,7 +7,7 @@
 #include "pico/rand.h"
 
 #define MAX_MSG_SIZE 1024 // make sure this is even!
-#define TCP_MAX_RETRIES 5
+#define TCP_MAX_RETRIES 10
 #define TCP_TRANSMIT_TIMEOUT_FACTOR 3
 #define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout in ms
 
@@ -68,12 +68,10 @@ private:
     uint32_t m_tx_timeout_us;
     absolute_time_t m_last_receive_us;
     absolute_time_t m_last_transmit_us;
-    uint8_t m_packet_group_id = 0;
-    uint8_t m_packet_group_next = 0;
 
 private:
-    void update_tx();
-    void update_rx();
+    bool update_tx();
+    bool update_rx();
     void clear_rx();
     bool can_transmit();
     void calibrate_tx_speed();
@@ -82,7 +80,7 @@ private:
 public:
     void send(Msg &msg);
     bool receive(Msg &msg, uint32_t timeout_ms);
-    void update();
+    bool update();
     bool connect(uint8_t rx_addr, uint32_t timeout_ms);
     bool accept(uint32_t timeout_ms);
     bool is_connected();

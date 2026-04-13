@@ -165,7 +165,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
 // }
 
-void ConnectCC1101::update_rx()
+bool ConnectCC1101::update_rx()
 {
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
     while (packet_available())
@@ -218,13 +218,14 @@ void ConnectCC1101::update_rx()
             }
         }
     }
+    return true;
 }
 
-void ConnectCC1101::update_tx()
+bool ConnectCC1101::update_tx()
 {
     // send pending packets
     if (!can_transmit())
-        return;
+        return true;
     // Drain the ACK queue first (highest priority)
     for (const auto &ack : m_pending_acks)
     {
@@ -249,6 +250,7 @@ void ConnectCC1101::update_tx()
         {
             Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
             it = m_sending_packets.erase(it);
+            return false;
         }
         else
         {
@@ -263,12 +265,12 @@ void ConnectCC1101::update_tx()
             ++it;
         }
     }
+    return true;
 }
 
-void ConnectCC1101::update()
+bool ConnectCC1101::update()
 {
-    update_rx();
-    update_tx();
+    return update_rx() && update_tx();
 }
 
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
@@ -421,7 +423,7 @@ bool ConnectCC1101::is_connected()
 
 bool ConnectCC1101::is_idle()
 {
-    return m_sending_packets.empty() && m_received_packets.empty();
+    return m_sending_packets.empty() && m_received_packets.empty() && m_pending_acks.empty();
 }
 
 bool ConnectCC1101::have_data()

@@ -38,7 +38,7 @@ void run_server()
         if (radio.have_data())
         {
             Msg msg;
-            if (radio.receive(msg, 3000))
+            if (radio.receive(msg, 5000))
             {
 
                 Logger::print(LogLevel::DEBUG, "Received message (%d bytes): %s\n", msg.length, (char *)msg.data);
@@ -54,10 +54,14 @@ void run_server()
             else
             {
                 Logger::print(LogLevel::ERROR, "Timeout or error while receiving message payload.\n");
+                break;
             }
         }
-        radio.update();
+        if (!radio.update())
+            break;
     }
+    while (true)
+        ;
 }
 
 void run_client()
@@ -80,20 +84,24 @@ void run_client()
     auto start_time = to_ms_since_boot(get_absolute_time());
     while (true)
     {
-        // every 1 second, send a message to the server with the current counter value, padded to 1000 bytes
+        // every x second, send a message to the server with the current counter value, padded to 1000 bytes
         if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
         {
-            Logger::print(LogLevel::DEBUG, "Sending message %d...\n", counter);
             Msg msg;
             std::string data = std::to_string(counter++);
-            data = std::string(1000 - data.length(), '0') + data;
+            uint string_length = get_rand_32() % 1000;
+            data = std::string(string_length, '0') + data;
             msg.length = strlen(data.c_str()) + 1;
             memcpy(msg.data, data.c_str(), msg.length);
+            Logger::print(LogLevel::DEBUG, "Sending message %d (%d)...\n", counter - 1, msg.length);
             radio.send(msg);
             start_time = to_ms_since_boot(get_absolute_time());
         }
-        radio.update();
+        if (!radio.update())
+            break;
     }
+    while (true)
+        ;
 }
 
 int main()
