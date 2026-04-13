@@ -7,6 +7,7 @@ enum class LogLevel
 {
     TRACE = 0,
     DEBUG,
+    WEAK_WARNING,
     INFO,
     WARNING,
     ERROR,
@@ -17,7 +18,7 @@ enum class LogLevel
 class Logger
 {
 private:
-    Logger()=delete;
+    Logger() = delete;
     static LogLevel m_level;
 
 public:

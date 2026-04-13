@@ -20,6 +20,9 @@ void Logger::print(LogLevel level, const char *fmt, ...)
     case LogLevel::DEBUG:
         printf("\033[36m[DEBUG] "); // Cyan
         break;
+    case LogLevel::WEAK_WARNING:
+        printf("\033[35m[WEAK WARN] "); // Magenta
+        break;
     case LogLevel::INFO:
         printf("\033[32m[INFO] "); // Green
         break;

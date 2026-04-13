@@ -189,7 +189,7 @@ bool ConnectCC1101::update_rx()
             // check packet syn (filter out old msgs)
             if ((int16_t)(packet.header.syn - m_ack) <= 0)
             {
-                Logger::print(LogLevel::WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
+                Logger::print(LogLevel::WEAK_WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
                 m_pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
                 continue;
             }
@@ -209,7 +209,7 @@ bool ConnectCC1101::update_rx()
                 }
                 else
                 {
-                    Logger::print(LogLevel::WARNING, "ACK does not match any sent packet, ignoring\n");
+                    Logger::print(LogLevel::WEAK_WARNING, "ACK does not match any sent packet, ignoring\n");
                 }
             }
             else
@@ -220,7 +220,7 @@ bool ConnectCC1101::update_rx()
                 // check for duplicates
                 if (m_received_packets.find(packet.header.syn) != m_received_packets.end())
                 {
-                    Logger::print(LogLevel::WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
+                    Logger::print(LogLevel::WEAK_WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
                     continue;
                 }
                 Logger::print(LogLevel::TRACE, "received packet with syn %d\n", packet.header.syn);
@@ -259,7 +259,7 @@ bool ConnectCC1101::update_tx()
     {
         if (it->second.retries >= TCP_MAX_RETRIES)
         {
-            Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
+            Logger::print(LogLevel::ERROR, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
             it = m_sending_packets.erase(it);
             wait_fstxon();
             receive_workmode();
