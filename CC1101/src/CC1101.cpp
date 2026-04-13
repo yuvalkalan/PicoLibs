@@ -249,28 +249,25 @@ void CC1101::fstxon_workmode()
 
 bool CC1101::rx_payload_burst(Packet &packet)
 {
-    uint8_t bytes_in_RXFIFO = read_single_byte(CC1101_RXBYTES); // reads the number of bytes in RXFIFO
-    if ((bytes_in_RXFIFO & 0x7F) && !(bytes_in_RXFIFO & 0x80))  // if bytes in buffer and no RX Overflow
+
+    uint8_t bytes_in_RXFIFO = read_single_byte(CC1101_RXBYTES);
+    // check overflow
+    if (bytes_in_RXFIFO & 0x80)
     {
-        // printf("have data!\n");
-        read_burst((uint8_t *)&packet, CC1101_RXFIFO_BURST, bytes_in_RXFIFO);
-        // printf("receive data!\n");
+        printf("RX FIFO overflow! Recovering...\n");
+        idle_workmode();    // Must go to IDLE first
+        flush_rx();         // Flush the bad data
+        receive_workmode(); // Restart RX mode
+        return false;
+    }
+    uint8_t num_bytes = bytes_in_RXFIFO & 0x7F; // Strip the overflow bit to get the actual byte count
+    // data available
+    if (num_bytes > 0)
+    {
+        read_burst((uint8_t *)&packet, CC1101_RXFIFO_BURST, num_bytes);
         return true;
     }
-    if (bytes_in_RXFIFO & 0x80) // if overflow
-    {
-        printf("RX FIFO overflow!\n");
-    }
-    if (!(bytes_in_RXFIFO & 0x7F)) // if no bytes
-    {
-        printf("no bytes in RX FIFO!\n");
-    }
-    printf("did not receive data!\n");
-    idle_workmode(); // set to IDLE
-    flush_rx();      // flush RX Buffer
-    sleep_us(100);
-    receive_workmode(); // set to receive mode
-    return false;
+    return false; // no data to read
 }
 bool CC1101::packet_available()
 {
