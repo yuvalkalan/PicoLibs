@@ -7,6 +7,7 @@
 #include "configuration.h"
 #include <string>
 #include <string.h>
+#include "Logger.h"
 
 #define CC1101_SPI_PORT spi1
 #define CC1101_PIN_SCK 10

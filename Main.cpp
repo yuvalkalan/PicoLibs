@@ -41,15 +41,11 @@ void run_server()
             if (radio.receive(msg, 5000))
             {
 
-                Logger::print(LogLevel::DEBUG, "Received message (%d bytes): %s\n", msg.length, (char *)msg.data);
+                // Logger::print(LogLevel::DEBUG, "Received message (%d bytes): %s\n", msg.length, (char *)msg.data);
 
                 // remove padding from the msg and print it
-                std::string received_str((char *)msg.data);
-                size_t first_nonzero = received_str.find_first_not_of('0');
-                if (first_nonzero != std::string::npos)
-                {
-                    Logger::print(LogLevel::INFO, "Received message: %s\n", received_str.substr(first_nonzero).c_str());
-                }
+                // std::string received_str((char *)msg.data);
+                Logger::print(LogLevel::INFO, "Received message: %s\n", (char *)msg.data + msg.length - 5);
             }
             else
             {
@@ -85,15 +81,16 @@ void run_client()
     while (true)
     {
         // every x second, send a message to the server with the current counter value, padded to 1000 bytes
-        if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
+        if (radio.is_idle())
+        // if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
         {
             Msg msg;
             std::string data = std::to_string(counter++);
-            uint string_length = get_rand_32() % 1000;
-            data = std::string(string_length, '0') + data;
+            // uint string_length = get_rand_32() % 1000;
+            data = std::string(1000 - data.length(), '0') + data;
             msg.length = strlen(data.c_str()) + 1;
             memcpy(msg.data, data.c_str(), msg.length);
-            Logger::print(LogLevel::DEBUG, "Sending message %d (%d)...\n", counter - 1, msg.length);
+            Logger::print(LogLevel::INFO, "Sending message %d (%d)...\n", counter - 1, msg.length);
             radio.send(msg);
             start_time = to_ms_since_boot(get_absolute_time());
         }

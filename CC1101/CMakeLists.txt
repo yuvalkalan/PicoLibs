@@ -12,5 +12,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         hardware_spi
         hardware_i2c
         hardware_interp
+        Logger
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

@@ -56,13 +56,13 @@ void ConnectCC1101::clear_rx()
 
 bool ConnectCC1101::can_transmit()
 {
-    // for all packets in m_sending_packets, check if pass the RTO
-    for (const auto &entry : m_sending_packets)
+    // check if have something to transmit
+    if (m_sending_packets.empty() && m_pending_acks.empty())
+        return false;
+    // check if pass the RTO
+    if (get_absolute_time() - m_last_transmit_us < TCP_RTO_FACTOR * m_tx_timeout_us)
     {
-        if (get_absolute_time() - m_last_transmit_us < TCP_RTO_FACTOR * m_tx_timeout_us)
-        {
-            return false;
-        }
+        return false;
     }
     // check if been a while since last receive data
     return get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TCP_TRANSMIT_TIMEOUT_FACTOR;
@@ -74,10 +74,13 @@ void ConnectCC1101::calibrate_tx_speed()
     Packet packet;
     packet.header.length = CC1101_MAX_PACKET_LENGTH;
     auto start_time_us = get_absolute_time();
+    fstxon_workmode();
     for (int i = 0; i < 10; i++)
     {
         send_packet(packet);
     }
+    wait_fstxon();
+    receive_workmode();
     auto end_time_us = get_absolute_time();
     m_tx_timeout_us = (uint32_t)((end_time_us - start_time_us) / 10);
     Logger::print(LogLevel::DEBUG, "tx timeout: %d us\n", m_tx_timeout_us);
@@ -93,7 +96,9 @@ uint16_t ConnectCC1101::check_bytes_received()
     uint16_t bytes_received = 0;
 
     // find the packet with the lowest syn number (wrap around)
-    uint16_t lowest_syn = m_received_packets.begin()->first;
+    // uint16_t lowest_syn = m_received_packets.begin()->first;
+    // printf("syn : %d\n, ack: %d", lowest_syn, m_ack);
+    uint16_t lowest_syn = m_ack + 1; // the next expected syn number
     for (const auto &entry : m_received_packets)
     {
         if ((int16_t)(entry.first - lowest_syn) < 0)
@@ -145,6 +150,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
     // copy sorted packets to msg buffer
     uint16_t bytes_copyed = 0;
+    std::vector<TCPPacket> used_packets;
     for (const auto &packet : sorted_packets)
     {
         uint16_t payload_len = packet.header.length - sizeof(TCPPacketHeader);
@@ -153,11 +159,15 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
         memcpy((uint8_t *)&msg + bytes_copyed, packet.payload, bytes_to_copy);
         bytes_copyed += bytes_to_copy;
         m_ack = packet.header.syn;
+        used_packets.push_back(packet);
         if (bytes_copyed >= m_msg_length)
             break;
     }
-
-    clear_rx();
+    // remove used packets from received_packets
+    for (const auto &packet : used_packets)
+    {
+        m_received_packets.erase(packet.header.syn);
+    }
     return true;
 }
 
@@ -227,6 +237,7 @@ bool ConnectCC1101::update_tx()
     if (!can_transmit())
         return true;
     // Drain the ACK queue first (highest priority)
+    fstxon_workmode();
     for (const auto &ack : m_pending_acks)
     {
         TCPPacket ack_packet;
@@ -236,7 +247,7 @@ bool ConnectCC1101::update_tx()
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
-        if (get_rand_32() % 10 != 0) // TODO: REMOVE
+        if (get_rand_32() % 20 != 0) // TODO: REMOVE
             send_packet((Packet &)ack_packet);
         else
             printf("dropped packet\n");
@@ -250,12 +261,14 @@ bool ConnectCC1101::update_tx()
         {
             Logger::print(LogLevel::WARNING, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
             it = m_sending_packets.erase(it);
+            wait_fstxon();
+            receive_workmode();
             return false;
         }
         else
         {
             Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-            if (get_rand_32() % 10 != 0) // TODO: REMOVE
+            if (get_rand_32() % 20 != 0) // TODO: REMOVE
                 send_packet((Packet &)(it->second.packet));
             else
                 printf("dropped packet\n");
@@ -265,6 +278,8 @@ bool ConnectCC1101::update_tx()
             ++it;
         }
     }
+    wait_fstxon();
+    receive_workmode();
     return true;
 }
 
@@ -288,7 +303,11 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     syn_packet.header.syn = m_syn;
     syn_packet.header.ack = 0;
     syn_packet.header.flags.syn = true;
+
+    fstxon_workmode();
     send_packet((Packet &)syn_packet);
+    wait_fstxon();
+    receive_workmode();
 
     // wait for SYN-ACK packet --------------------------------------------------------------------
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
@@ -331,7 +350,11 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     ack_packet.header.syn = ++m_syn;
     ack_packet.header.ack = m_ack;
     ack_packet.header.flags.ack = true;
+
+    fstxon_workmode();
     send_packet((Packet &)ack_packet);
+    wait_fstxon();
+    receive_workmode();
 
     m_rx_addr = rx_addr;
     Logger::print(LogLevel::TRACE, "Connected successfully to address: 0x%02X, syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
@@ -383,7 +406,11 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     syn_ack_packet.header.ack = m_ack;
     syn_ack_packet.header.flags.syn = true;
     syn_ack_packet.header.flags.ack = true;
+
+    fstxon_workmode();
     send_packet((Packet &)syn_ack_packet);
+    wait_fstxon();
+    receive_workmode();
 
     // wait for ACK -------------------------------------------------------------------------------
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)

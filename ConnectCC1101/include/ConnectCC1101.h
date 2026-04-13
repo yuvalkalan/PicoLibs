@@ -1,6 +1,6 @@
 #pragma once
 #include "CC1101.h"
-#include "Logger.h"
+// #include "Logger.h"
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
@@ -9,7 +9,7 @@
 #define MAX_MSG_SIZE 1024 // make sure this is even!
 #define TCP_MAX_RETRIES 10
 #define TCP_TRANSMIT_TIMEOUT_FACTOR 3
-#define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout in ms
+#define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout
 
 struct __attribute__((packed)) TCPFlags
 {

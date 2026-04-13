@@ -169,7 +169,7 @@ void CC1101::set_mode(uint8_t mode)
         write_burst(0, cc1101_MSK_250_kb, CC1101_CFG_REGISTER);
         break;
     case 0x05:
-        write_burst(0, cc1101_MSK_500_kb, CC1101_CFG_REGISTER);
+        write_burst(0, cc1101_MSK_500_kb_fast, CC1101_CFG_REGISTER);
         break;
     case 0x06:
         write_burst(0, cc1101_OOK_4_8_kb, CC1101_CFG_REGISTER);
@@ -229,6 +229,7 @@ void CC1101::wakeup()
 void CC1101::idle_workmode()
 {
     strobe(CC1101_SIDLE);
+    wait_idle();
 }
 void CC1101::transmit_workmode()
 {
@@ -244,7 +245,9 @@ void CC1101::receive_workmode()
 
 void CC1101::fstxon_workmode()
 {
+    idle_workmode();
     strobe(CC1101_SFSTXON); // writes FSTXON strobe (calibrate freq synthesizer)
+    wait_fstxon();
 }
 
 bool CC1101::rx_payload_burst(Packet &packet)
@@ -254,10 +257,11 @@ bool CC1101::rx_payload_burst(Packet &packet)
     // check overflow
     if (bytes_in_RXFIFO & 0x80)
     {
-        printf("RX FIFO overflow! Recovering...\n");
+        Logger::print(LogLevel::WARNING, "RX FIFO overflow! Recovering...\n");
         idle_workmode();    // Must go to IDLE first
         flush_rx();         // Flush the bad data
         receive_workmode(); // Restart RX mode
+        Logger::print(LogLevel::TRACE, "finish recovery\n");
         return false;
     }
     uint8_t num_bytes = bytes_in_RXFIFO & 0x7F; // Strip the overflow bit to get the actual byte count
@@ -300,7 +304,7 @@ bool CC1101::get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi)
     uint8_t crc = check_crc(packet.payload[packet.header.length - 1]); // get packet CRC
     if (!crc)
     {
-        printf("CRC check failed!\n");
+        Logger::print(LogLevel::WARNING, "CRC check failed!\n");
         return false;
     }
     return true;
@@ -308,20 +312,15 @@ bool CC1101::get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi)
 
 bool CC1101::send_packet(Packet &packet)
 {
-
     packet.header.tx_addr = m_address;                   // set sender address
     if (packet.header.length > CC1101_MAX_PACKET_LENGTH) // check if packet size is larger than max payload size (CC1101_MAX_PACKET_LENGTH - 1 byte for length)
     {
-        printf("ERROR: package size overflow\n");
+        Logger::print(LogLevel::ERROR, "package size overflow\n");
         return false;
     }
-    idle_workmode();
-    wait_idle();
+    wait_fstxon();
     write_burst(CC1101_TXFIFO_BURST, (uint8_t *)&packet, packet.header.length + 1); // write data to TX FIFO
-
-    transmit_workmode(); // sends data over air
-    wait_idle();
-    receive_workmode(); // receive mode
+    transmit_workmode();                                                            // sends data over air
     return true;
 }
 
@@ -336,8 +335,8 @@ CC1101::CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address)
     sleep_us(100);
     uint8_t partnum = read_single_byte(CC1101_PARTNUM); // reads cc1101 partnumber
     uint8_t version = read_single_byte(CC1101_VERSION); // reads cc1101 version number
-    printf("Partnumber: 0x%02X\n", partnum);
-    printf("Version   : 0x%02X\n", version);
+    Logger::print(LogLevel::TRACE, "Partnumber: 0x%02X\n", partnum);
+    Logger::print(LogLevel::TRACE, "Version   : 0x%02X\n", version);
     // set modulation mode
     set_mode(m_mode);
     // set ISM band
@@ -348,7 +347,7 @@ CC1101::CC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address)
     set_output_power_level(-30); // set PA to 0dBm as default
     // set my receiver address
     set_myaddr(m_address); // m_address from EEPROM to global variable
-    printf("init done!\n");
+    Logger::print(LogLevel::TRACE, "init done!\n");
     // idle_workmode();
     receive_workmode(); // set cc1101 in receive mode
 }
