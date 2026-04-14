@@ -56,5 +56,7 @@ void Logger::print(LogLevel level, const char *fmt, ...)
 
 void Logger::set_level(LogLevel level)
 {
+    mutex_enter_blocking(&logger_mutex);
     m_level = level;
+    mutex_exit(&logger_mutex);
 }
