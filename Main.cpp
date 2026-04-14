@@ -13,6 +13,19 @@ pico_unique_board_id_t SERVER_ID = {{0xE6, 0x62, 0x5C, 0x05, 0xE7, 0x55, 0x24, 0
 #define SERVER_ADDRESS 0x01
 #define CLIENT_ADDRESS 0x02
 
+ConnectCC1101 *g_radio = nullptr;
+
+void core1_main()
+{
+    SerialIn serial_in;
+    while (true)
+    {
+        serial_in.update();
+        if (g_radio && g_radio->is_connected())
+            g_radio->update();
+    }
+}
+
 bool is_server()
 {
     return check_id(&SERVER_ID);
@@ -22,6 +35,7 @@ void run_server()
 {
     Logger::print(LogLevel::DEBUG, "Running server...\n");
     ConnectCC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, SERVER_ADDRESS);
+    g_radio = &radio;
     while (!radio.is_connected())
     {
         if (radio.accept(5000))
@@ -53,8 +67,6 @@ void run_server()
                 break;
             }
         }
-        if (!radio.update())
-            break;
     }
     while (true)
         ;
@@ -64,6 +76,7 @@ void run_client()
 {
     Logger::print(LogLevel::TRACE, "Running client...\n");
     ConnectCC1101 radio(CC1101_FREQ_434MHZ, 0x5, 0x00, CLIENT_ADDRESS);
+    g_radio = &radio;
     int counter = 1;
     while (!radio.is_connected())
     {
@@ -96,7 +109,7 @@ void run_client()
 
         // every x second, send a message to the server with the current counter value, padded to 1000 bytes
         // if (radio.is_idle())
-        if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
+        if (radio.is_idle()) // to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
         {
             Msg msg;
             std::string data = std::to_string(counter++);
@@ -108,8 +121,6 @@ void run_client()
             radio.send(msg);
             start_time = to_ms_since_boot(get_absolute_time());
         }
-        if (!radio.update())
-            break;
     }
     while (true)
         ;
@@ -119,7 +130,7 @@ int main()
 {
     stdio_init_all();
     wait_for_serial(10000);
-    multicore_launch_core1(serial_core);
+    multicore_launch_core1(core1_main);
     Logger::set_level(LogLevel::TRACE);
     if (is_server())
     {

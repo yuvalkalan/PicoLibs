@@ -1,5 +1,16 @@
 #include "ConnectCC1101.h"
 
+#include "pico/mutex.h"
+
+auto_init_recursive_mutex(cc1101_mutex);
+
+struct ScopedMutex
+{
+    recursive_mutex_t *m;
+    ScopedMutex(recursive_mutex_t *mut) : m(mut) { recursive_mutex_enter_blocking(m); }
+    ~ScopedMutex() { recursive_mutex_exit(m); }
+};
+
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
     calibrate_tx_speed();
@@ -7,6 +18,7 @@ ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_
 
 void ConnectCC1101::send(Msg &msg)
 {
+    ScopedMutex lock(&cc1101_mutex);
     // split msg to packets
     // first send msg length
     uint16_t total_length = msg.length + sizeof(msg.length);
@@ -50,12 +62,14 @@ void ConnectCC1101::send(Msg &msg)
 
 void ConnectCC1101::clear_rx()
 {
+    ScopedMutex lock(&cc1101_mutex);
     m_msg_length = 0;
     m_received_packets.clear();
 }
 
 bool ConnectCC1101::can_transmit()
 {
+    ScopedMutex lock(&cc1101_mutex);
     // check if have something to transmit
     if (m_sending_packets.empty() && m_pending_acks.empty())
         return false;
@@ -67,6 +81,7 @@ bool ConnectCC1101::can_transmit()
 
 void ConnectCC1101::calibrate_tx_speed()
 {
+    ScopedMutex lock(&cc1101_mutex);
     // fill the tx buffer with blob and mesure time
     Packet packet;
     packet.header.length = CC1101_MAX_PACKET_LENGTH;
@@ -85,6 +100,7 @@ void ConnectCC1101::calibrate_tx_speed()
 
 uint16_t ConnectCC1101::check_bytes_received()
 {
+    ScopedMutex lock(&cc1101_mutex);
     if (m_received_packets.empty())
     {
         return 0;
@@ -117,18 +133,19 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     uint16_t bytes_received = 0;
     while ((!m_msg_length || bytes_received < m_msg_length) && to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
-        update();
         bytes_received = check_bytes_received();
+        sleep_ms(1); // Give core1 time to update and prevent tight loop freezing
         // printf("Received %d/%d bytes\n", bytes_received, m_msg_length);
     }
     if (!m_msg_length || bytes_received < m_msg_length)
     {
-        printf("Message receive timed out\n");
+        ScopedMutex lock(&cc1101_mutex);
         clear_rx();
         return false;
     }
     // reassemble msg
 
+    ScopedMutex lock(&cc1101_mutex);
     std::vector<TCPPacket> sorted_packets; // create a vector of received packets for sorting
     for (auto &entry : m_received_packets)
     {
@@ -167,6 +184,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
 bool ConnectCC1101::update_rx()
 {
+    ScopedMutex lock(&cc1101_mutex);
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
     while (packet_available())
     {
@@ -223,6 +241,7 @@ bool ConnectCC1101::update_rx()
 
 bool ConnectCC1101::update_tx()
 {
+    ScopedMutex lock(&cc1101_mutex);
     // send pending packets
     if (!can_transmit())
         return true;
@@ -237,10 +256,15 @@ bool ConnectCC1101::update_tx()
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
-        if (get_rand_32() % 20 != 0) // TODO: REMOVE
+
+#ifndef NDEBUG
+        if (get_rand_32() % 20 != 0)
             send_packet((Packet &)ack_packet);
         else
             printf("dropped packet\n");
+#else
+        send_packet((Packet &)ack_packet);
+#endif
         m_last_transmit_us = get_absolute_time();
     }
     m_pending_acks.clear();
@@ -258,10 +282,15 @@ bool ConnectCC1101::update_tx()
         else
         {
             Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-            if (get_rand_32() % 20 != 0) // TODO: REMOVE
+
+#ifndef NDEBUG
+            if (get_rand_32() % 20 != 0)
                 send_packet((Packet &)(it->second.packet));
             else
                 printf("dropped packet\n");
+#else
+            send_packet((Packet &)(it->second.packet));
+#endif
 
             m_last_transmit_us = get_absolute_time();
             it->second.retries++;
@@ -275,52 +304,59 @@ bool ConnectCC1101::update_tx()
 
 bool ConnectCC1101::update()
 {
+    ScopedMutex lock(&cc1101_mutex);
     return update_rx() && update_tx();
 }
 
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
-    // clear data
-    m_syn = get_rand_32();
-    m_rx_addr = 0;
-    clear_rx();
-    m_sending_packets.clear();
+    {
+        ScopedMutex lock(&cc1101_mutex);
+        // clear data
+        m_syn = get_rand_32();
+        m_rx_addr = 0;
+        clear_rx();
+        m_sending_packets.clear();
 
-    // send SYN packet ----------------------------------------------------------------------------
-    TCPPacket syn_packet;
-    syn_packet.header.length = sizeof(TCPPacketHeader);
-    syn_packet.header.rx_addr = rx_addr;
-    syn_packet.header.syn = m_syn;
-    syn_packet.header.ack = 0;
-    syn_packet.header.flags.syn = true;
+        // send SYN packet ----------------------------------------------------------------------------
+        TCPPacket syn_packet;
+        syn_packet.header.length = sizeof(TCPPacketHeader);
+        syn_packet.header.rx_addr = rx_addr;
+        syn_packet.header.syn = m_syn;
+        syn_packet.header.ack = 0;
+        syn_packet.header.flags.syn = true;
 
-    fstxon_workmode();
-    send_packet((Packet &)syn_packet);
-    wait_fstxon();
-    receive_workmode();
+        fstxon_workmode();
+        send_packet((Packet &)syn_packet);
+        wait_fstxon();
+        receive_workmode();
+    }
 
     // wait for SYN-ACK packet --------------------------------------------------------------------
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
     bool syn_ack_received = false;
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
-        if (packet_available())
         {
-            TCPPacket recv_packet;
-            int8_t rssi_dbm;
-            uint8_t lqi;
-
-            if (get_payload((Packet &)recv_packet, rssi_dbm, lqi))
+            ScopedMutex lock(&cc1101_mutex);
+            if (packet_available())
             {
-                if (recv_packet.header.length >= sizeof(TCPPacketHeader))
+                TCPPacket recv_packet;
+                int8_t rssi_dbm;
+                uint8_t lqi;
+
+                if (get_payload((Packet &)recv_packet, rssi_dbm, lqi))
                 {
-                    if (recv_packet.header.flags.syn && recv_packet.header.flags.ack && recv_packet.header.tx_addr == rx_addr)
+                    if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                     {
-                        if (recv_packet.header.ack == m_syn)
+                        if (recv_packet.header.flags.syn && recv_packet.header.flags.ack && recv_packet.header.tx_addr == rx_addr)
                         {
-                            m_ack = recv_packet.header.syn;
-                            syn_ack_received = true;
-                            break;
+                            if (recv_packet.header.ack == m_syn)
+                            {
+                                m_ack = recv_packet.header.syn;
+                                syn_ack_received = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -333,21 +369,25 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
         Logger::print(LogLevel::WEAK_WARNING, "Connection failed: SYN-ACK timeout\n");
         return false;
     }
-    // send ACK packet ----------------------------------------------------------------------------
-    TCPPacket ack_packet;
-    ack_packet.header.length = sizeof(TCPPacketHeader);
-    ack_packet.header.rx_addr = rx_addr;
-    ack_packet.header.syn = ++m_syn;
-    ack_packet.header.ack = m_ack;
-    ack_packet.header.flags.ack = true;
 
-    fstxon_workmode();
-    send_packet((Packet &)ack_packet);
-    wait_fstxon();
-    receive_workmode();
+    {
+        ScopedMutex lock(&cc1101_mutex);
+        // send ACK packet ----------------------------------------------------------------------------
+        TCPPacket ack_packet;
+        ack_packet.header.length = sizeof(TCPPacketHeader);
+        ack_packet.header.rx_addr = rx_addr;
+        ack_packet.header.syn = ++m_syn;
+        ack_packet.header.ack = m_ack;
+        ack_packet.header.flags.ack = true;
 
-    m_rx_addr = rx_addr;
-    Logger::print(LogLevel::TRACE, "Connected successfully to address: 0x%02X, syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
+        fstxon_workmode();
+        send_packet((Packet &)ack_packet);
+        wait_fstxon();
+        receive_workmode();
+
+        m_rx_addr = rx_addr;
+        Logger::print(LogLevel::TRACE, "Connected successfully to address: 0x%02X, syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
+    }
     return true;
 }
 
@@ -356,24 +396,28 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     // wait for syn packet ------------------------------------------------------------------------
     bool syn_received = false;
     uint32_t start_time = to_ms_since_boot(get_absolute_time());
+    uint8_t temp_rx_addr = 0;
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
-        if (packet_available())
         {
-            TCPPacket recv_packet;
-            int8_t rssi_dbm;
-            uint8_t lqi;
-
-            if (get_payload((Packet &)recv_packet, rssi_dbm, lqi))
+            ScopedMutex lock(&cc1101_mutex);
+            if (packet_available())
             {
-                if (recv_packet.header.length >= sizeof(TCPPacketHeader))
+                TCPPacket recv_packet;
+                int8_t rssi_dbm;
+                uint8_t lqi;
+
+                if (get_payload((Packet &)recv_packet, rssi_dbm, lqi))
                 {
-                    if ((recv_packet.header.flags.syn) && !(recv_packet.header.flags.ack))
+                    if (recv_packet.header.length >= sizeof(TCPPacketHeader))
                     {
-                        m_rx_addr = recv_packet.header.tx_addr;
-                        m_ack = recv_packet.header.syn;
-                        syn_received = true;
-                        break;
+                        if ((recv_packet.header.flags.syn) && !(recv_packet.header.flags.ack))
+                        {
+                            temp_rx_addr = recv_packet.header.tx_addr;
+                            m_ack = recv_packet.header.syn;
+                            syn_received = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -382,68 +426,80 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     if (!syn_received)
     {
         Logger::print(LogLevel::WEAK_WARNING, "Connection failed: SYN timeout\n");
+        ScopedMutex lock(&cc1101_mutex);
         m_rx_addr = 0;
         return false;
     }
 
     // send SYN-ACK packet ------------------------------------------------------------------------
 
-    m_syn = get_rand_32();
-    TCPPacket syn_ack_packet;
-    syn_ack_packet.header.length = sizeof(TCPPacketHeader);
-    syn_ack_packet.header.rx_addr = m_rx_addr; // שולחים חזרה ללקוח
-    syn_ack_packet.header.syn = m_syn;
-    syn_ack_packet.header.ack = m_ack;
-    syn_ack_packet.header.flags.syn = true;
-    syn_ack_packet.header.flags.ack = true;
+    {
+        ScopedMutex lock(&cc1101_mutex);
+        m_syn = get_rand_32();
+        TCPPacket syn_ack_packet;
+        syn_ack_packet.header.length = sizeof(TCPPacketHeader);
+        syn_ack_packet.header.rx_addr = temp_rx_addr; // שולחים חזרה ללקוח
+        syn_ack_packet.header.syn = m_syn;
+        syn_ack_packet.header.ack = m_ack;
+        syn_ack_packet.header.flags.syn = true;
+        syn_ack_packet.header.flags.ack = true;
 
-    fstxon_workmode();
-    send_packet((Packet &)syn_ack_packet);
-    wait_fstxon();
-    receive_workmode();
+        fstxon_workmode();
+        send_packet((Packet &)syn_ack_packet);
+        wait_fstxon();
+        receive_workmode();
+    }
 
     // wait for ACK -------------------------------------------------------------------------------
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
-        if (packet_available())
         {
-            TCPPacket ack_packet;
-            int8_t rssi_dbm;
-            uint8_t lqi;
-
-            if (get_payload((Packet &)ack_packet, rssi_dbm, lqi))
+            ScopedMutex lock(&cc1101_mutex);
+            if (packet_available())
             {
-                if (ack_packet.header.length >= sizeof(TCPPacketHeader))
+                TCPPacket ack_packet;
+                int8_t rssi_dbm;
+                uint8_t lqi;
+
+                if (get_payload((Packet &)ack_packet, rssi_dbm, lqi))
                 {
-                    if ((ack_packet.header.flags.ack) && !(ack_packet.header.flags.syn))
+                    if (ack_packet.header.length >= sizeof(TCPPacketHeader))
                     {
-                        if (ack_packet.header.ack == m_syn && ack_packet.header.tx_addr == m_rx_addr)
+                        if ((ack_packet.header.flags.ack) && !(ack_packet.header.flags.syn))
                         {
-                            m_syn++;
-                            Logger::print(LogLevel::DEBUG, "Connection established. Client: 0x%02X syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
-                            return true;
+                            if (ack_packet.header.ack == m_syn && ack_packet.header.tx_addr == temp_rx_addr)
+                            {
+                                m_syn++;
+                                m_rx_addr = temp_rx_addr;
+                                Logger::print(LogLevel::DEBUG, "Connection established. Client: 0x%02X syn=%d, ack=%d\n", m_rx_addr, m_syn, m_ack);
+                                return true;
+                            }
                         }
                     }
                 }
             }
         }
     }
-    m_rx_addr = 0;
     Logger::print(LogLevel::WEAK_WARNING, "Connection failed: ACK timeout\n");
+    ScopedMutex lock(&cc1101_mutex);
+    m_rx_addr = 0;
     return false;
 }
 
 bool ConnectCC1101::is_connected()
 {
+    ScopedMutex lock(&cc1101_mutex);
     return m_rx_addr != 0;
 }
 
 bool ConnectCC1101::is_idle()
 {
+    ScopedMutex lock(&cc1101_mutex);
     return m_sending_packets.empty() && m_received_packets.empty() && m_pending_acks.empty();
 }
 
 bool ConnectCC1101::have_data()
 {
+    ScopedMutex lock(&cc1101_mutex);
     return !m_received_packets.empty();
 }
