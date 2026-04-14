@@ -6,7 +6,7 @@
 #include "pico/rand.h"
 
 #define MAX_MSG_SIZE 1024 // make sure this is even!
-#define TCP_MAX_RETRIES 10
+#define TCP_MAX_RETRIES 20
 #define TCP_TRANSMIT_TIMEOUT_FACTOR 3
 #define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout
 

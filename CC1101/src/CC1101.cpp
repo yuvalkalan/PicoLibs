@@ -240,7 +240,6 @@ void CC1101::receive_workmode()
     idle_workmode();    // sets to idle first.
     strobe(CC1101_SRX); // writes receive strobe (receive mode)
     wait_rx();
-    sleep_us(100);
 }
 
 void CC1101::fstxon_workmode()
@@ -257,11 +256,11 @@ bool CC1101::rx_payload_burst(Packet &packet)
     // check overflow
     if (bytes_in_RXFIFO & 0x80)
     {
+
         Logger::print(LogLevel::WARNING, "RX FIFO overflow! Recovering...\n");
         idle_workmode();    // Must go to IDLE first
         flush_rx();         // Flush the bad data
         receive_workmode(); // Restart RX mode
-        Logger::print(LogLevel::TRACE, "finish recovery\n");
         return false;
     }
     uint8_t num_bytes = bytes_in_RXFIFO & 0x7F; // Strip the overflow bit to get the actual byte count
@@ -304,7 +303,10 @@ bool CC1101::get_payload(Packet &packet, int8_t &rssi_dbm, uint8_t &lqi)
     uint8_t crc = check_crc(packet.payload[packet.header.length - 1]); // get packet CRC
     if (!crc)
     {
-        Logger::print(LogLevel::WARNING, "CRC check failed!\n");
+        Logger::print(LogLevel::WARNING, "CRC check failed! Recovering...\n");
+        idle_workmode();    // Must go to IDLE first
+        flush_rx();         // Flush the bad data
+        receive_workmode(); // Restart RX mode
         return false;
     }
     return true;

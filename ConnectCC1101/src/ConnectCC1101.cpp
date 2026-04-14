@@ -258,7 +258,7 @@ bool ConnectCC1101::update_tx()
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
 
 #ifndef NDEBUG
-        if (get_rand_32() % 20 != 0)
+        if (get_rand_32() % 5 != 0)
             send_packet((Packet &)ack_packet);
         else
             printf("dropped packet\n");
@@ -284,7 +284,7 @@ bool ConnectCC1101::update_tx()
             Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
 
 #ifndef NDEBUG
-            if (get_rand_32() % 20 != 0)
+            if (get_rand_32() % 5 != 0)
                 send_packet((Packet &)(it->second.packet));
             else
                 printf("dropped packet\n");

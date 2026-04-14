@@ -56,9 +56,7 @@ void run_server()
             {
 
                 // Logger::print(LogLevel::DEBUG, "Received message (%d bytes): %s\n", msg.length, (char *)msg.data);
-
                 // remove padding from the msg and print it
-                // std::string received_str((char *)msg.data);
                 Logger::print(LogLevel::INFO, "Received message: %s\n", (char *)msg.data + msg.length - 5);
             }
             else
@@ -109,17 +107,20 @@ void run_client()
 
         // every x second, send a message to the server with the current counter value, padded to 1000 bytes
         // if (radio.is_idle())
-        if (radio.is_idle()) // to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
+        if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
         {
-            Msg msg;
-            std::string data = std::to_string(counter++);
-            // uint string_length = get_rand_32() % 1000;
-            data = std::string(1000 - data.length(), '0') + data;
-            msg.length = strlen(data.c_str()) + 1;
-            memcpy(msg.data, data.c_str(), msg.length);
-            Logger::print(LogLevel::INFO, "Sending message %d (%d)...\n", counter - 1, msg.length);
-            radio.send(msg);
-            start_time = to_ms_since_boot(get_absolute_time());
+            for (size_t i = 0; i < 5; i++)
+            {
+                Msg msg;
+                std::string data = std::to_string(counter++);
+                // uint string_length = get_rand_32() % 1000;
+                data = std::string(1000 - data.length(), '0') + data;
+                msg.length = strlen(data.c_str()) + 1;
+                memcpy(msg.data, data.c_str(), msg.length);
+                Logger::print(LogLevel::INFO, "Sending message %d (%d)...\n", counter - 1, msg.length);
+                radio.send(msg);
+                start_time = to_ms_since_boot(get_absolute_time());
+            }
         }
     }
     while (true)
@@ -131,7 +132,7 @@ int main()
     stdio_init_all();
     wait_for_serial(10000);
     multicore_launch_core1(core1_main);
-    Logger::set_level(LogLevel::TRACE);
+    Logger::set_level(LogLevel::INFO);
     if (is_server())
     {
         run_server();
