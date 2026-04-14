@@ -340,7 +340,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
     if (!syn_ack_received)
     {
-        Logger::print(LogLevel::ERROR, "Connection failed: SYN-ACK timeout\n");
+        Logger::print(LogLevel::WEAK_WARNING, "Connection failed: SYN-ACK timeout\n");
         return false;
     }
     // send ACK packet ----------------------------------------------------------------------------
@@ -391,7 +391,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     }
     if (!syn_received)
     {
-        Logger::print(LogLevel::ERROR, "Connection failed: SYN timeout\n");
+        Logger::print(LogLevel::WEAK_WARNING, "Connection failed: SYN timeout\n");
         m_rx_addr = 0;
         return false;
     }
@@ -439,7 +439,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
         }
     }
     m_rx_addr = 0;
-    Logger::print(LogLevel::ERROR, "Connection failed: ACK timeout\n");
+    Logger::print(LogLevel::WEAK_WARNING, "Connection failed: ACK timeout\n");
     return false;
 }
 
