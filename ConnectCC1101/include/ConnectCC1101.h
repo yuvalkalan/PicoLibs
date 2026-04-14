@@ -1,6 +1,5 @@
 #pragma once
 #include "CC1101.h"
-// #include "Logger.h"
 #include <unordered_map>
 #include <algorithm>
 #include <vector>
@@ -56,18 +55,22 @@ struct PendingAck
 class ConnectCC1101 : public CC1101
 {
 
-private:
-    uint16_t m_ack;
-    uint16_t m_syn;
-    uint8_t m_tx_power_dbm;
-    uint8_t m_rx_addr = 0;
-    uint16_t m_msg_length = 0;
+private: // synconize data
+    volatile uint16_t m_ack;
+    volatile uint16_t m_syn;
+    volatile uint8_t m_tx_power_dbm;
+    volatile uint8_t m_rx_addr = 0;
+    volatile uint16_t m_msg_length = 0;
+
+private: // tx-rx clocks
+    volatile uint32_t m_tx_timeout_us;
+    volatile absolute_time_t m_last_receive_us;
+    volatile absolute_time_t m_last_transmit_us;
+
+private: // packets data structures
     std::unordered_map<uint16_t, TCPPacketHandler> m_sending_packets;
     std::unordered_map<uint16_t, TCPPacket> m_received_packets;
     std::vector<PendingAck> m_pending_acks;
-    uint32_t m_tx_timeout_us;
-    absolute_time_t m_last_receive_us;
-    absolute_time_t m_last_transmit_us;
 
 private:
     bool update_tx();

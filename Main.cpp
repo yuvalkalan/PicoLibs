@@ -26,11 +26,11 @@ void run_server()
     {
         if (radio.accept(5000))
         {
-            Logger::print(LogLevel::DEBUG, "Client connected!\n");
+            Logger::print(LogLevel::INFO, "Client connected!\n");
         }
         else
         {
-            Logger::print(LogLevel::WARNING, "No connection attempts received. Retrying...\n");
+            Logger::print(LogLevel::WEAK_WARNING, "No connection attempts received. Retrying...\n");
         }
     }
     while (true)
@@ -73,16 +73,30 @@ void run_client()
         }
         else
         {
-            Logger::print(LogLevel::WARNING, "Connection attempt failed. Retrying in 1 second...\n");
+            Logger::print(LogLevel::WEAK_WARNING, "Connection attempt failed. Retrying in 1 second...\n");
             sleep_ms(1000);
         }
     }
     auto start_time = to_ms_since_boot(get_absolute_time());
     while (true)
     {
+        if (radio.have_data())
+        {
+            Msg msg;
+            if (radio.receive(msg, 5000))
+            {
+                Logger::print(LogLevel::INFO, "Received echo: %s\n", (char *)msg.data + msg.length - 5);
+            }
+            else
+            {
+                Logger::print(LogLevel::ERROR, "Timeout or error while receiving echo.\n");
+                break;
+            }
+        }
+
         // every x second, send a message to the server with the current counter value, padded to 1000 bytes
-        if (radio.is_idle())
-        // if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
+        // if (radio.is_idle())
+        if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
         {
             Msg msg;
             std::string data = std::to_string(counter++);

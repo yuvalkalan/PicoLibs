@@ -59,13 +59,10 @@ bool ConnectCC1101::can_transmit()
     // check if have something to transmit
     if (m_sending_packets.empty() && m_pending_acks.empty())
         return false;
-    // check if pass the RTO
-    if (get_absolute_time() - m_last_transmit_us < TCP_RTO_FACTOR * m_tx_timeout_us)
-    {
-        return false;
-    }
-    // check if been a while since last receive data
-    return get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TCP_TRANSMIT_TIMEOUT_FACTOR;
+
+    bool rto_expired = get_absolute_time() - m_last_transmit_us >= TCP_RTO_FACTOR * m_tx_timeout_us;
+    bool tx_timeout = get_absolute_time() - m_last_receive_us >= m_tx_timeout_us * TCP_TRANSMIT_TIMEOUT_FACTOR;
+    return rto_expired && tx_timeout;
 }
 
 void ConnectCC1101::calibrate_tx_speed()
@@ -94,10 +91,6 @@ uint16_t ConnectCC1101::check_bytes_received()
     }
 
     uint16_t bytes_received = 0;
-
-    // find the packet with the lowest syn number (wrap around)
-    // uint16_t lowest_syn = m_received_packets.begin()->first;
-    // printf("syn : %d\n, ack: %d", lowest_syn, m_ack);
     uint16_t lowest_syn = m_ack + 1; // the next expected syn number
     for (const auto &entry : m_received_packets)
     {
@@ -111,9 +104,6 @@ uint16_t ConnectCC1101::check_bytes_received()
     while (m_received_packets.find(lowest_syn) != m_received_packets.end())
     {
         bytes_received += m_received_packets[lowest_syn].header.length - sizeof(TCPPacketHeader);
-
-        // This part was already correct!
-        // In C++, unsigned integers naturally wrap around to 0 when they overflow.
         lowest_syn++;
     }
 
