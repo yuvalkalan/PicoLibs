@@ -17,8 +17,6 @@ struct __attribute__((packed)) TCPFlags
     bool rssi_low : 1;  // rssi low flag bit
     bool rssi_high : 1; // rssi high flag bit
     bool start : 1;     // start of message flag bit
-    bool end : 1;       // end of connection flag bit
-    bool reserved : 2;
 };
 
 struct __attribute__((packed)) TCPPacketHeader : public PacketHeader
@@ -58,7 +56,6 @@ class ConnectCC1101 : public CC1101
 private: // synconize data
     volatile uint16_t m_ack;
     volatile uint16_t m_syn;
-    volatile uint8_t m_tx_power_dbm;
     volatile uint8_t m_rx_addr = 0;
     volatile uint16_t m_msg_length = 0;
 
@@ -72,9 +69,14 @@ private: // packets data structures
     std::unordered_map<uint16_t, TCPPacket> m_received_packets;
     std::vector<PendingAck> m_pending_acks;
 
+private: // power control
+    volatile int8_t m_tx_power_dbm = CC1101_TX_MIN_POWER;
+    volatile int8_t m_rx_power_dbm = CC1101_RSSI_TARGET_BOTTOM;
+
 private:
     bool update_tx();
     bool update_rx();
+    void update_tx_power(TCPPacket &packet);
     void clear_rx();
     bool can_transmit();
     void calibrate_tx_speed();
@@ -86,6 +88,7 @@ public:
     bool update();
     bool connect(uint8_t rx_addr, uint32_t timeout_ms);
     bool accept(uint32_t timeout_ms);
+    void disconnect();
     bool is_connected();
     bool is_idle();
     bool have_data();

@@ -4,7 +4,11 @@
 
 auto_init_mutex(logger_mutex);
 
+#ifndef NDEBUG
+LogLevel Logger::m_level = LogLevel::TRACE;
+#else
 LogLevel Logger::m_level = LogLevel::INFO;
+#endif
 
 void Logger::print(LogLevel level, const char *fmt, ...)
 {

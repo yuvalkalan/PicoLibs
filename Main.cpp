@@ -67,7 +67,7 @@ void run_server()
         }
     }
     while (true)
-        ;
+        sleep_ms(1);
 }
 
 void run_client()
@@ -91,20 +91,6 @@ void run_client()
     auto start_time = to_ms_since_boot(get_absolute_time());
     while (true)
     {
-        if (radio.have_data())
-        {
-            Msg msg;
-            if (radio.receive(msg, 5000))
-            {
-                Logger::print(LogLevel::INFO, "Received echo: %s\n", (char *)msg.data + msg.length - 5);
-            }
-            else
-            {
-                Logger::print(LogLevel::ERROR, "Timeout or error while receiving echo.\n");
-                break;
-            }
-        }
-
         // every x second, send a message to the server with the current counter value, padded to 1000 bytes
         // if (radio.is_idle())
         if (to_ms_since_boot(get_absolute_time()) - start_time >= 1000)
@@ -124,7 +110,7 @@ void run_client()
         }
     }
     while (true)
-        ;
+        sleep_ms(1);
 }
 
 int main()
@@ -132,7 +118,7 @@ int main()
     stdio_init_all();
     wait_for_serial(10000);
     multicore_launch_core1(core1_main);
-    Logger::set_level(LogLevel::INFO);
+    Logger::set_level(LogLevel::TRACE);
     if (is_server())
     {
         run_server();

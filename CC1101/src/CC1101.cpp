@@ -1,10 +1,10 @@
 #include "CC1101.h"
 
-// Patable index: -30  -20 -15  -10   0    5    7    10 dBm
-static uint8_t patable_power_315[8] = {0x17, 0x1D, 0x26, 0x69, 0x51, 0x86, 0xCC, 0xC3};
-static uint8_t patable_power_433[8] = {0x6C, 0x1C, 0x06, 0x3A, 0x51, 0x85, 0xC8, 0xC0};
-static uint8_t patable_power_868[8] = {0x03, 0x17, 0x1D, 0x26, 0x50, 0x86, 0xCD, 0xC0};
-static uint8_t patable_power_915[8] = {0x0B, 0x1B, 0x6D, 0x67, 0x50, 0x85, 0xC9, 0xC1};
+static int8_t patable_index_power[CC1101_PATABLE_SIZE] = {-30, -20, -15, -10, 0, 5, 7, 10};
+static uint8_t patable_power_315[CC1101_PATABLE_SIZE] = {0x17, 0x1D, 0x26, 0x69, 0x51, 0x86, 0xCC, 0xC3};
+static uint8_t patable_power_433[CC1101_PATABLE_SIZE] = {0x6C, 0x1C, 0x06, 0x3A, 0x51, 0x85, 0xC8, 0xC0};
+static uint8_t patable_power_868[CC1101_PATABLE_SIZE] = {0x03, 0x17, 0x1D, 0x26, 0x50, 0x86, 0xCD, 0xC0};
+static uint8_t patable_power_915[CC1101_PATABLE_SIZE] = {0x0B, 0x1B, 0x6D, 0x67, 0x50, 0x85, 0xC9, 0xC1};
 
 // byte operators macros
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01) // bitRead function from arduino
@@ -181,26 +181,15 @@ void CC1101::set_mode(uint8_t mode)
 }
 void CC1101::set_output_power_level(int8_t dBm)
 {
-    uint8_t pa = 0xC0;
-
-    if (dBm <= -30)
-        pa = 0x00;
-    else if (dBm <= -20)
-        pa = 0x01;
-    else if (dBm <= -15)
-        pa = 0x02;
-    else if (dBm <= -10)
-        pa = 0x03;
-    else if (dBm <= 0)
-        pa = 0x04;
-    else if (dBm <= 5)
-        pa = 0x05;
-    else if (dBm <= 7)
-        pa = 0x06;
-    else if (dBm <= 10)
-        pa = 0x07;
-
-    write_single_byte(CC1101_FREND0, pa);
+    for (int i = 0; i < CC1101_PATABLE_SIZE; i++)
+    {
+        if (dBm <= patable_index_power[i])
+        {
+            write_single_byte(CC1101_FREND0, i);
+            return;
+        }
+    }
+    Logger::print(LogLevel::WARNING, "invalid output power level %d, ignoring...\n", dBm);
 }
 
 void CC1101::reset()

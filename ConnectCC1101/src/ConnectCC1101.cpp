@@ -13,51 +13,26 @@ struct ScopedMutex
 
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
+    set_output_power_level(m_tx_power_dbm);
     calibrate_tx_speed();
 }
 
-void ConnectCC1101::send(Msg &msg)
+bool ConnectCC1101::is_connected()
 {
     ScopedMutex lock(&cc1101_mutex);
-    // split msg to packets
-    // first send msg length
-    uint16_t total_length = msg.length + sizeof(msg.length);
-    uint16_t bytes_sent = 0;
-    // printf("Sending message of length %d bytes\n", total_length);
-    while (bytes_sent < total_length)
-    {
-        TCPPacketHandler handler;
-        handler.packet.header.ack = m_ack;
-        handler.packet.header.syn = m_syn++;
-        handler.packet.header.flags.start = !bytes_sent; // start flag for the first packet
-        handler.packet.header.rx_addr = m_rx_addr;       // set receiver address
-        uint16_t bytes_to_send = std::min((uint16_t)(CC1101_MAX_PACKET_LENGTH - sizeof(TCPPacketHeader)), (uint16_t)(total_length - bytes_sent));
-        handler.packet.header.length = sizeof(TCPPacketHeader) + bytes_to_send;
-        memcpy(handler.packet.payload, (uint8_t *)&msg + bytes_sent, bytes_to_send);
+    return m_rx_addr != 0;
+}
 
-        // send_packet(m_rx_addr, (uint8_t *)&handler.packet, sizeof(PacketHeader) + bytes_to_send);
-        m_sending_packets[handler.packet.header.syn] = handler;
-        bytes_sent += bytes_to_send;
-    }
-    // // print packets in sending queue
-    // printf("Packets in sending queue:\n");
-    // for (const auto &entry : sending_packets)
-    // {
-    //     const TCPPacketHandler &handler = entry.second;
-    //     printf("Packet SYN: %d, ACK: %d, Flags: %02X, Length: %d (%d) -> ", handler.packet.header.syn, handler.packet.header.ack, handler.packet.header.flags, handler.packet.header.length, handler.packet.header.length - sizeof(TCPPacketHeader), (char *)handler.packet.payload);
-    //     // print payload as bytes and chars
-    //     for (int i = 0; i < handler.packet.header.length - sizeof(TCPPacketHeader); i++)
-    //     {
-    //         printf("%02X ", handler.packet.payload[i]);
-    //     }
-    //     printf("(");
-    //     for (int i = 0; i < handler.packet.header.length - sizeof(TCPPacketHeader); i++)
-    //     {
-    //         printf("%c ", handler.packet.payload[i]);
-    //     }
-    //     printf(")\n");
-    //     printf("\n");
-    // }
+bool ConnectCC1101::is_idle()
+{
+    ScopedMutex lock(&cc1101_mutex);
+    return m_sending_packets.empty() && m_received_packets.empty() && m_pending_acks.empty();
+}
+
+bool ConnectCC1101::have_data()
+{
+    ScopedMutex lock(&cc1101_mutex);
+    return !m_received_packets.empty();
 }
 
 void ConnectCC1101::clear_rx()
@@ -126,6 +101,51 @@ uint16_t ConnectCC1101::check_bytes_received()
     return bytes_received;
 }
 
+void ConnectCC1101::send(Msg &msg)
+{
+    ScopedMutex lock(&cc1101_mutex);
+
+    // split msg to packets
+    // first send msg length
+    uint16_t total_length = msg.length + sizeof(msg.length);
+    uint16_t bytes_sent = 0;
+    // printf("Sending message of length %d bytes\n", total_length);
+    while (bytes_sent < total_length)
+    {
+        TCPPacketHandler handler;
+        handler.packet.header.ack = m_ack;
+        handler.packet.header.syn = m_syn++;
+        handler.packet.header.flags.start = !bytes_sent; // start flag for the first packet
+        handler.packet.header.rx_addr = m_rx_addr;       // set receiver address
+        uint16_t bytes_to_send = std::min((uint16_t)(CC1101_MAX_PACKET_LENGTH - sizeof(TCPPacketHeader)), (uint16_t)(total_length - bytes_sent));
+        handler.packet.header.length = sizeof(TCPPacketHeader) + bytes_to_send;
+        memcpy(handler.packet.payload, (uint8_t *)&msg + bytes_sent, bytes_to_send);
+
+        // send_packet(m_rx_addr, (uint8_t *)&handler.packet, sizeof(PacketHeader) + bytes_to_send);
+        m_sending_packets[handler.packet.header.syn] = handler;
+        bytes_sent += bytes_to_send;
+    }
+    // // print packets in sending queue
+    // printf("Packets in sending queue:\n");
+    // for (const auto &entry : sending_packets)
+    // {
+    //     const TCPPacketHandler &handler = entry.second;
+    //     printf("Packet SYN: %d, ACK: %d, Flags: %02X, Length: %d (%d) -> ", handler.packet.header.syn, handler.packet.header.ack, handler.packet.header.flags, handler.packet.header.length, handler.packet.header.length - sizeof(TCPPacketHeader), (char *)handler.packet.payload);
+    //     // print payload as bytes and chars
+    //     for (int i = 0; i < handler.packet.header.length - sizeof(TCPPacketHeader); i++)
+    //     {
+    //         printf("%02X ", handler.packet.payload[i]);
+    //     }
+    //     printf("(");
+    //     for (int i = 0; i < handler.packet.header.length - sizeof(TCPPacketHeader); i++)
+    //     {
+    //         printf("%c ", handler.packet.payload[i]);
+    //     }
+    //     printf(")\n");
+    //     printf("\n");
+    // }
+}
+
 bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 {
     // wait for packets and reassemble msg
@@ -178,9 +198,26 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     return true;
 }
 
-// void ConnectCC1101::update_tx(){
-
-// }
+void ConnectCC1101::update_tx_power(TCPPacket &packet)
+{
+    ScopedMutex lock(&cc1101_mutex);
+    auto current_tx_power = m_tx_power_dbm;
+    if (packet.header.flags.rssi_low)
+    {
+        if (m_tx_power_dbm < CC1101_TX_MAX_POWER)
+            m_tx_power_dbm++;
+    }
+    if (packet.header.flags.rssi_high)
+    {
+        if (m_tx_power_dbm > CC1101_TX_MIN_POWER)
+            m_tx_power_dbm--;
+    }
+    if (current_tx_power != m_tx_power_dbm)
+    {
+        Logger::print(LogLevel::DEBUG, "update tx power to %d\n", m_tx_power_dbm);
+        set_output_power_level(m_tx_power_dbm);
+    }
+}
 
 bool ConnectCC1101::update_rx()
 {
@@ -194,6 +231,14 @@ bool ConnectCC1101::update_rx()
         if (get_payload((Packet &)packet, rssi_dbm, lqi))
         {
             m_last_receive_us = get_absolute_time();
+            if (packet.header.flags.syn) // do not answer to new connection at this point!
+            {
+                Logger::print(LogLevel::WEAK_WARNING, "Received SYN packet, ignoring\n");
+                continue;
+            }
+            m_rx_power_dbm = rssi_dbm;
+            update_tx_power(packet);
+
             // check packet syn (filter out old msgs)
             if ((int16_t)(packet.header.syn - m_ack) <= 0)
             {
@@ -247,6 +292,8 @@ bool ConnectCC1101::update_tx()
         return true;
     // Drain the ACK queue first (highest priority)
     fstxon_workmode();
+    bool rssi_low_flag = m_rx_power_dbm < CC1101_RSSI_TARGET_BOTTOM;
+    bool rssi_high_flag = m_rx_power_dbm > CC1101_RSSI_TARGET_TOP;
     for (const auto &ack : m_pending_acks)
     {
         TCPPacket ack_packet;
@@ -255,6 +302,10 @@ bool ConnectCC1101::update_tx()
         ack_packet.header.syn = m_syn;
         ack_packet.header.flags.ack = true;
         ack_packet.header.length = sizeof(TCPPacketHeader);
+        ack_packet.header.flags.rssi_low = rssi_low_flag;
+        rssi_low_flag = false;
+        ack_packet.header.flags.rssi_high = rssi_high_flag;
+        rssi_high_flag = false;
         Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
 
 #ifndef NDEBUG
@@ -265,6 +316,7 @@ bool ConnectCC1101::update_tx()
 #else
         send_packet((Packet &)ack_packet);
 #endif
+        wait_fstxon(); // acks are too fast for regular sending, wait until can send another one
         m_last_transmit_us = get_absolute_time();
     }
     m_pending_acks.clear();
@@ -277,12 +329,16 @@ bool ConnectCC1101::update_tx()
             it = m_sending_packets.erase(it);
             wait_fstxon();
             receive_workmode();
+            disconnect();
             return false;
         }
         else
         {
             Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
-
+            it->second.packet.header.flags.rssi_low = rssi_low_flag;
+            rssi_low_flag = false;
+            it->second.packet.header.flags.rssi_high = rssi_high_flag;
+            rssi_high_flag = false;
 #ifndef NDEBUG
             if (get_rand_32() % 5 != 0)
                 send_packet((Packet &)(it->second.packet));
@@ -291,7 +347,6 @@ bool ConnectCC1101::update_tx()
 #else
             send_packet((Packet &)(it->second.packet));
 #endif
-
             m_last_transmit_us = get_absolute_time();
             it->second.retries++;
             ++it;
@@ -486,20 +541,14 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     return false;
 }
 
-bool ConnectCC1101::is_connected()
+void ConnectCC1101::disconnect()
 {
+    Logger::print(LogLevel::DEBUG, "Disconnecting...\n");
     ScopedMutex lock(&cc1101_mutex);
-    return m_rx_addr != 0;
-}
 
-bool ConnectCC1101::is_idle()
-{
-    ScopedMutex lock(&cc1101_mutex);
-    return m_sending_packets.empty() && m_received_packets.empty() && m_pending_acks.empty();
-}
-
-bool ConnectCC1101::have_data()
-{
-    ScopedMutex lock(&cc1101_mutex);
-    return !m_received_packets.empty();
+    // reset connection variables
+    m_rx_addr = 0;
+    m_sending_packets.clear();
+    m_received_packets.clear();
+    m_pending_acks.clear();
 }

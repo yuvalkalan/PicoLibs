@@ -15,7 +15,11 @@
 #define CC1101_TEMP_CELS_CO 2.47 // Temperature coefficient 2.47mV per Grad Celsius
 
 #define CC1101_MAX_PACKET_LENGTH 62
-
+#define CC1101_PATABLE_SIZE 8
+#define CC1101_TX_MIN_POWER -30
+#define CC1101_TX_MAX_POWER 10
+#define CC1101_RSSI_TARGET_TOP -50
+#define CC1101_RSSI_TARGET_BOTTOM -70
 /*---------------------------[cc1101 - R/W offsets]---------------------------*/
 #define CC1101_WRITE_SINGLE_BYTE 0x00
 #define CC1101_WRITE_BURST 0x40
