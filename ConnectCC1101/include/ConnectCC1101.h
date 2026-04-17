@@ -1,5 +1,6 @@
 #pragma once
 #include "CC1101.h"
+#include "MultiCore.h"
 #include <unordered_map>
 #include <algorithm>
 #include <vector>

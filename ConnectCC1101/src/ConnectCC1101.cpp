@@ -1,15 +1,10 @@
 #include "ConnectCC1101.h"
 
-#include "pico/mutex.h"
+
 
 auto_init_recursive_mutex(cc1101_mutex);
 
-struct ScopedMutex
-{
-    recursive_mutex_t *m;
-    ScopedMutex(recursive_mutex_t *mut) : m(mut) { recursive_mutex_enter_blocking(m); }
-    ~ScopedMutex() { recursive_mutex_exit(m); }
-};
+
 
 ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
 {
@@ -19,32 +14,32 @@ ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_
 
 bool ConnectCC1101::is_connected()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     return m_rx_addr != 0;
 }
 
 bool ConnectCC1101::is_idle()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     return m_sending_packets.empty() && m_received_packets.empty() && m_pending_acks.empty();
 }
 
 bool ConnectCC1101::have_data()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     return !m_received_packets.empty();
 }
 
 void ConnectCC1101::clear_rx()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     m_msg_length = 0;
     m_received_packets.clear();
 }
 
 bool ConnectCC1101::can_transmit()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     // check if have something to transmit
     if (m_sending_packets.empty() && m_pending_acks.empty())
         return false;
@@ -56,7 +51,7 @@ bool ConnectCC1101::can_transmit()
 
 void ConnectCC1101::calibrate_tx_speed()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     // fill the tx buffer with blob and mesure time
     Packet packet;
     packet.header.length = CC1101_MAX_PACKET_LENGTH;
@@ -66,7 +61,7 @@ void ConnectCC1101::calibrate_tx_speed()
     {
         send_packet(packet);
     }
-    wait_fstxon();
+    wait_finish_tx();
     receive_workmode();
     auto end_time_us = get_absolute_time();
     m_tx_timeout_us = (uint32_t)((end_time_us - start_time_us) / 10);
@@ -75,7 +70,7 @@ void ConnectCC1101::calibrate_tx_speed()
 
 uint16_t ConnectCC1101::check_bytes_received()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     if (m_received_packets.empty())
     {
         return 0;
@@ -103,7 +98,7 @@ uint16_t ConnectCC1101::check_bytes_received()
 
 void ConnectCC1101::send(Msg &msg)
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
 
     // split msg to packets
     // first send msg length
@@ -159,13 +154,13 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
     }
     if (!m_msg_length || bytes_received < m_msg_length)
     {
-        ScopedMutex lock(&cc1101_mutex);
+        ScopedMutexRecursive lock(&cc1101_mutex);
         clear_rx();
         return false;
     }
     // reassemble msg
 
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     std::vector<TCPPacket> sorted_packets; // create a vector of received packets for sorting
     for (auto &entry : m_received_packets)
     {
@@ -200,7 +195,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
 void ConnectCC1101::update_tx_power(TCPPacket &packet)
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     auto current_tx_power = m_tx_power_dbm;
     if (packet.header.flags.rssi_low)
     {
@@ -221,7 +216,7 @@ void ConnectCC1101::update_tx_power(TCPPacket &packet)
 
 bool ConnectCC1101::update_rx()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     // check for received packets, wait for a short time if no packets are received, and resend pending packets if their RTO has expired
     while (packet_available())
     {
@@ -233,7 +228,7 @@ bool ConnectCC1101::update_rx()
             m_last_receive_us = get_absolute_time();
             if (packet.header.flags.syn) // do not answer to new connection at this point!
             {
-                Logger::print(LogLevel::WEAK_WARNING, "Received SYN packet, ignoring\n");
+                Logger::print(LogLevel::WEAK_WARNING, "SYN flag!\n");
                 continue;
             }
             m_rx_power_dbm = rssi_dbm;
@@ -242,7 +237,7 @@ bool ConnectCC1101::update_rx()
             // check packet syn (filter out old msgs)
             if ((int16_t)(packet.header.syn - m_ack) <= 0)
             {
-                Logger::print(LogLevel::WEAK_WARNING, "Old packet with syn %d received, ignoring\n", packet.header.syn);
+                Logger::print(LogLevel::WEAK_WARNING, "Old syn (%d)!\n", packet.header.syn);
                 m_pending_acks.push_back({packet.header.tx_addr, packet.header.syn}); // send ack later
                 continue;
             }
@@ -257,12 +252,12 @@ bool ConnectCC1101::update_rx()
                 // check if this packet exists in sending_packets
                 if (m_sending_packets.find(packet.header.ack) != m_sending_packets.end())
                 {
-                    Logger::print(LogLevel::TRACE, "got ack for packet with syn %d\n", packet.header.ack);
+                    Logger::print(LogLevel::TRACE, "rx ack (%d)\n", packet.header.ack);
                     m_sending_packets.erase(packet.header.ack);
                 }
                 else
                 {
-                    Logger::print(LogLevel::WEAK_WARNING, "ACK does not match any sent packet, ignoring\n");
+                    Logger::print(LogLevel::WEAK_WARNING, "ACK not exist!\n");
                 }
             }
             else
@@ -273,10 +268,10 @@ bool ConnectCC1101::update_rx()
                 // check for duplicates
                 if (m_received_packets.find(packet.header.syn) != m_received_packets.end())
                 {
-                    Logger::print(LogLevel::WEAK_WARNING, "Duplicate packet with syn %d received, ignoring\n", packet.header.syn);
+                    Logger::print(LogLevel::WEAK_WARNING, "Duplicate (%d)\n", packet.header.syn);
                     continue;
                 }
-                Logger::print(LogLevel::TRACE, "received packet with syn %d\n", packet.header.syn);
+                Logger::print(LogLevel::TRACE, "rx (%d)\n", packet.header.syn);
                 m_received_packets[packet.header.syn] = packet;
             }
         }
@@ -286,7 +281,7 @@ bool ConnectCC1101::update_rx()
 
 bool ConnectCC1101::update_tx()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     // send pending packets
     if (!can_transmit())
         return true;
@@ -306,7 +301,7 @@ bool ConnectCC1101::update_tx()
         rssi_low_flag = false;
         ack_packet.header.flags.rssi_high = rssi_high_flag;
         rssi_high_flag = false;
-        Logger::print(LogLevel::TRACE, "sending ack for packet with syn %d\n", ack.syn);
+        Logger::print(LogLevel::TRACE, "tx ack (%d)\n", ack.syn);
 
 #ifndef NDEBUG
         if (get_rand_32() % 5 != 0)
@@ -316,7 +311,7 @@ bool ConnectCC1101::update_tx()
 #else
         send_packet((Packet &)ack_packet);
 #endif
-        wait_fstxon(); // acks are too fast for regular sending, wait until can send another one
+        wait_finish_tx(); // acks are too fast for regular sending, wait until can send another one. TODO: remove
         m_last_transmit_us = get_absolute_time();
     }
     m_pending_acks.clear();
@@ -327,14 +322,14 @@ bool ConnectCC1101::update_tx()
         {
             Logger::print(LogLevel::ERROR, "Packet with syn %d failed to send after %d retries\n", it->second.packet.header.syn, TCP_MAX_RETRIES);
             it = m_sending_packets.erase(it);
-            wait_fstxon();
+            wait_finish_tx();
             receive_workmode();
             disconnect();
             return false;
         }
         else
         {
-            Logger::print(LogLevel::TRACE, "sending packet (%d) with syn %d, attempt %d\n", it->second.packet.header.length, it->second.packet.header.syn, it->second.retries + 1);
+            Logger::print(LogLevel::TRACE, "tx %d (%d)\n", it->second.packet.header.syn, it->second.retries + 1);
             it->second.packet.header.flags.rssi_low = rssi_low_flag;
             rssi_low_flag = false;
             it->second.packet.header.flags.rssi_high = rssi_high_flag;
@@ -352,21 +347,21 @@ bool ConnectCC1101::update_tx()
             ++it;
         }
     }
-    wait_fstxon();
+    wait_finish_tx();
     receive_workmode();
     return true;
 }
 
 bool ConnectCC1101::update()
 {
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     return update_rx() && update_tx();
 }
 
 bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 {
     {
-        ScopedMutex lock(&cc1101_mutex);
+        ScopedMutexRecursive lock(&cc1101_mutex);
         // clear data
         m_syn = get_rand_32();
         m_rx_addr = 0;
@@ -383,7 +378,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
         fstxon_workmode();
         send_packet((Packet &)syn_packet);
-        wait_fstxon();
+        wait_finish_tx();
         receive_workmode();
     }
 
@@ -393,7 +388,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         {
-            ScopedMutex lock(&cc1101_mutex);
+            ScopedMutexRecursive lock(&cc1101_mutex);
             if (packet_available())
             {
                 TCPPacket recv_packet;
@@ -426,7 +421,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
     }
 
     {
-        ScopedMutex lock(&cc1101_mutex);
+        ScopedMutexRecursive lock(&cc1101_mutex);
         // send ACK packet ----------------------------------------------------------------------------
         TCPPacket ack_packet;
         ack_packet.header.length = sizeof(TCPPacketHeader);
@@ -437,7 +432,7 @@ bool ConnectCC1101::connect(uint8_t rx_addr, uint32_t timeout_ms)
 
         fstxon_workmode();
         send_packet((Packet &)ack_packet);
-        wait_fstxon();
+        wait_finish_tx();
         receive_workmode();
 
         m_rx_addr = rx_addr;
@@ -455,7 +450,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         {
-            ScopedMutex lock(&cc1101_mutex);
+            ScopedMutexRecursive lock(&cc1101_mutex);
             if (packet_available())
             {
                 TCPPacket recv_packet;
@@ -481,7 +476,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     if (!syn_received)
     {
         Logger::print(LogLevel::WEAK_WARNING, "Connection failed: SYN timeout\n");
-        ScopedMutex lock(&cc1101_mutex);
+        ScopedMutexRecursive lock(&cc1101_mutex);
         m_rx_addr = 0;
         return false;
     }
@@ -489,7 +484,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     // send SYN-ACK packet ------------------------------------------------------------------------
 
     {
-        ScopedMutex lock(&cc1101_mutex);
+        ScopedMutexRecursive lock(&cc1101_mutex);
         m_syn = get_rand_32();
         TCPPacket syn_ack_packet;
         syn_ack_packet.header.length = sizeof(TCPPacketHeader);
@@ -501,7 +496,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 
         fstxon_workmode();
         send_packet((Packet &)syn_ack_packet);
-        wait_fstxon();
+        wait_finish_tx();
         receive_workmode();
     }
 
@@ -509,7 +504,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
     while (to_ms_since_boot(get_absolute_time()) - start_time < timeout_ms)
     {
         {
-            ScopedMutex lock(&cc1101_mutex);
+            ScopedMutexRecursive lock(&cc1101_mutex);
             if (packet_available())
             {
                 TCPPacket ack_packet;
@@ -536,7 +531,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
         }
     }
     Logger::print(LogLevel::WEAK_WARNING, "Connection failed: ACK timeout\n");
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
     m_rx_addr = 0;
     return false;
 }
@@ -544,7 +539,7 @@ bool ConnectCC1101::accept(uint32_t timeout_ms)
 void ConnectCC1101::disconnect()
 {
     Logger::print(LogLevel::DEBUG, "Disconnecting...\n");
-    ScopedMutex lock(&cc1101_mutex);
+    ScopedMutexRecursive lock(&cc1101_mutex);
 
     // reset connection variables
     m_rx_addr = 0;

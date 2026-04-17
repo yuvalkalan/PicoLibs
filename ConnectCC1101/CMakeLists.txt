@@ -17,5 +17,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         hardware_interp
         CC1101
         Logger
+        MultiCore
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
