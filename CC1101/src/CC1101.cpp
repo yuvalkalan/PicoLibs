@@ -169,7 +169,7 @@ void CC1101::set_mode(uint8_t mode)
         write_burst(0, cc1101_MSK_250_kb, CC1101_CFG_REGISTER);
         break;
     case 0x05:
-        write_burst(0, cc1101_MSK_500_kb_fast, CC1101_CFG_REGISTER);
+        write_burst(0, cc1101_MSK_500_kb, CC1101_CFG_REGISTER);
         break;
     case 0x06:
         write_burst(0, cc1101_OOK_4_8_kb, CC1101_CFG_REGISTER);
@@ -186,6 +186,7 @@ void CC1101::set_output_power_level(int8_t dBm)
         if (dBm <= patable_index_power[i])
         {
             write_single_byte(CC1101_FREND0, i);
+            Logger::print(LogLevel::DEBUG, "set tx power to %d dBm (#%d)\n", patable_index_power[i], i);
             return;
         }
     }
@@ -309,7 +310,7 @@ bool CC1101::send_packet(Packet &packet)
         Logger::print(LogLevel::ERROR, "package size overflow\n");
         return false;
     }
-    wait_fstxon();
+    wait_finish_tx();
     write_burst(CC1101_TXFIFO_BURST, (uint8_t *)&packet, packet.header.length + 1); // write data to TX FIFO
     transmit_workmode();                                                            // sends data over air
     return true;

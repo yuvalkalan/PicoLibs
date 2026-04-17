@@ -21,10 +21,20 @@
 // cc1101 gpio macros
 #define cc1101_select() gpio_put(CC1101_PIN_CS, 0)   //  Select (SPI) CC1101
 #define cc1101_deselect() gpio_put(CC1101_PIN_CS, 1) // Deselect (SPI) CC1101
+
 // cc1101 softwate macros
-#define wait_idle() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x01)   // Wait until enter idle mode
-#define wait_rx() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x0D)     // Wait until enter rx mode
-#define wait_fstxon() while ((read_single_byte(CC1101_MARCSTATE) & 0x1F) != 0x12) // Wait until enter FSTXON mode
+#define in_idle_mode() (read_single_byte(CC1101_MARCSTATE) & 0x1F) == 0x01
+#define in_rx_mode() (read_single_byte(CC1101_MARCSTATE) & 0x1F) == 0x0D
+#define in_tx_mode() (read_single_byte(CC1101_MARCSTATE) & 0x1F) == 0x13
+#define in_fstxon_mode() (read_single_byte(CC1101_MARCSTATE) & 0x1F) == 0x12
+
+#define wait_idle() while (!in_idle_mode())     // Wait until enter idle mode
+#define wait_rx() while (!in_rx_mode())         // Wait until enter rx mode
+#define wait_tx() while (!in_tx_mode())         // Wait until enter rx mode
+#define wait_fstxon() while (!in_fstxon_mode()) // Wait until enter FSTXON mode
+
+#define wait_finish_tx() while (!(in_idle_mode() || in_fstxon_mode())) // can set to tx only if current in idle or fstxon mode
+
 #define flush_rx() strobe(CC1101_SFRX)
 #define flush_tx() strobe(CC1101_SFTX)
 
