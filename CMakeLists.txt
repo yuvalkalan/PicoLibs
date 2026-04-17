@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD pico2 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -42,6 +42,8 @@ set(MY_LIBRARIES
         SerialIn
         UniqueID
         Logger
+        LedControl
+        MultiCore
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
