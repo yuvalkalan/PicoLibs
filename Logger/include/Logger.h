@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "pico/stdlib.h"
+#include "MultiCore.h"
 
 enum class LogLevel
 {

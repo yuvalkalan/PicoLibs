@@ -1,7 +1,5 @@
 #include "Logger.h"
 
-#include "pico/mutex.h"
-
 auto_init_mutex(logger_mutex);
 
 #ifndef NDEBUG
@@ -18,8 +16,7 @@ void Logger::print(LogLevel level, const char *fmt, ...)
         return;
     }
 
-    mutex_enter_blocking(&logger_mutex);
-
+    ScopedMutex lock(&logger_mutex);
     uint32_t now = to_ms_since_boot(get_absolute_time());
     printf("[%lu] ", now);
     switch (level)
@@ -54,13 +51,10 @@ void Logger::print(LogLevel level, const char *fmt, ...)
     vprintf(fmt, args);
     va_end(args);
     printf("\033[0m");
-
-    mutex_exit(&logger_mutex);
 }
 
 void Logger::set_level(LogLevel level)
 {
-    mutex_enter_blocking(&logger_mutex);
+    ScopedMutex lock(&logger_mutex);
     m_level = level;
-    mutex_exit(&logger_mutex);
 }
