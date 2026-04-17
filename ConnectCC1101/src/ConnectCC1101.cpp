@@ -214,7 +214,7 @@ void ConnectCC1101::update_tx_power(TCPPacket &packet)
     }
     if (current_tx_power != m_tx_power_dbm)
     {
-        Logger::print(LogLevel::DEBUG, "update tx power to %d\n", m_tx_power_dbm);
+        Logger::print(LogLevel::DEBUG, "tx pwr -> %d\n", m_tx_power_dbm);
         set_output_power_level(m_tx_power_dbm);
     }
 }

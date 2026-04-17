@@ -21,7 +21,7 @@ void Logger::print(LogLevel level, const char *fmt, ...)
     mutex_enter_blocking(&logger_mutex);
 
     uint32_t now = to_ms_since_boot(get_absolute_time());
-    printf("[%lu ms] ", now);
+    printf("[%lu] ", now);
     switch (level)
     {
     case LogLevel::TRACE:
