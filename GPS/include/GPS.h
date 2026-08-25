@@ -12,26 +12,22 @@
 // GPS Struct ---
 struct __attribute__((packed)) GPSData
 {
-    // --- 4-Byte Variables ---
-    int32_t latitude;  // Degrees * 10,000,000 (+North, -South)
-    int32_t longitude; // Degrees * 10,000,000 (+East, -West)
+    int32_t latitude; 
+    int32_t longitude; 
 
-    // Pack Date/Time into exactly 32 bits (4 bytes) total
-    uint32_t year : 6;   // 0-63 (Years since 2000, valid until 2063)
-    uint32_t month : 4;  // 1-12
-    uint32_t day : 5;    // 1-31
-    uint32_t hour : 5;   // 0-23
-    uint32_t minute : 6; // 0-59
-    uint32_t second : 6; // 0-59
+    uint32_t year : 6;   
+    uint32_t month : 4;  
+    uint32_t day : 5;    
+    uint32_t hour : 5;   
+    uint32_t minute : 6; 
+    uint32_t second : 6; 
 
-    // --- 2-Byte Variables ---
-    int16_t altitude_m;   // Altitude in meters (range: -32,768m to +32,767m)
-    uint16_t speed_kmh;   // km/h * 100 (e.g., 1.48 km/h is stored as 148)
-    uint16_t heading_deg; // Degrees * 100 (e.g., 245.65 deg is stored as 24565)
+    int16_t altitude_m;   
+    uint16_t speed_kmh;   
+    uint16_t heading_deg; 
 
-    // --- 1-Byte Variables ---
-    uint8_t satellites; // Number of satellites tracked
-    bool valid;         // True if fix is active
+    uint8_t satellites; 
+    bool valid;         
 };
 
 class GPS
@@ -43,8 +39,22 @@ private:
     uint m_rx;
     GPSData m_data;
 
-    char m_buffer[128];
-    int m_buffer_index;
+    static GPS* s_instance;
+    static void on_uart_rx_isr();
+    void isr_handler();
+
+    // --- ISR Temporary Buffer ---
+    char m_isr_buffer[128];
+    int m_isr_index;
+
+    // --- Mailbox Buffers ---
+    volatile char m_latest_rmc[128];
+    volatile char m_latest_gga[128];
+    volatile bool m_rmc_ready;
+    volatile bool m_gga_ready;
+    
+    // Main loop parser buffer
+    char m_buffer[128]; 
 
 public:
     float get_speed_kmh() const;
@@ -62,4 +72,5 @@ public:
 
 public:
     GPS(uart_inst_t *uart, uint baudrate, uint tx, uint rx);
+    ~GPS();
 };
