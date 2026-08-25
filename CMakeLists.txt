@@ -45,6 +45,8 @@ set(MY_LIBRARIES
         LedControl
         MultiCore
         BMI270
+        ESC
+        GPS
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
