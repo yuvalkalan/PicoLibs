@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib
         hardware_spi
+        HighSPI
         
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
