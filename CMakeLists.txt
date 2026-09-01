@@ -48,6 +48,7 @@ set(MY_LIBRARIES
         ESC
         GPS
         E01C2G4M27D
+        HighSPI
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)

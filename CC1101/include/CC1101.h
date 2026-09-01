@@ -9,6 +9,7 @@
 #include <string.h>
 #include "Logger.h"
 
+// TODO: dont use constants pins here
 #define CC1101_SPI_PORT spi1
 #define CC1101_PIN_SCK 10
 #define CC1101_PIN_MOSI 11
@@ -69,6 +70,7 @@ protected: // variables
     uint8_t m_address;
 
 protected: // low spi api
+           // TODO: use HighSPI lib instead
     void strobe(uint8_t cmd);
     void write_single_byte(uint8_t address, uint8_t data);
     uint8_t read_single_byte(uint8_t address);
