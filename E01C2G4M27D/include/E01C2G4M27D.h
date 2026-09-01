@@ -41,13 +41,13 @@ public:
     bool get_RPD();           // Returns Reg 0x09 bit 0 (Received Power Detector)
 
 private: // helper functions (use as macros)
-    __always_inline uint8_t readRegister(uint8_t reg) { return read_single_byte(CMD_R_REGISTER | (reg & 0x1F)); }
-    __always_inline void writeRegister(uint8_t reg, uint8_t data) { write_single_byte(CMD_W_REGISTER | (reg & 0x1F), data); }
-    __always_inline void readRegisterMulti(uint8_t reg, uint8_t *buffer, size_t bytes) { read_burst(CMD_R_REGISTER | (reg & 0x1F), buffer, bytes); }
-    __always_inline void writeRegisterMulti(uint8_t reg, const uint8_t *buffer, size_t bytes) { write_burst(CMD_W_REGISTER | (reg & 0x1F), buffer, bytes); }
+    __always_inline uint8_t readRegister(uint8_t reg) { return read_single_byte(E01C2G4M27D_CMD_R_REGISTER | (reg & 0x1F)); }
+    __always_inline void writeRegister(uint8_t reg, uint8_t data) { write_single_byte(E01C2G4M27D_CMD_W_REGISTER | (reg & 0x1F), data); }
+    __always_inline void readRegisterMulti(uint8_t reg, uint8_t *buffer, size_t bytes) { read_burst(E01C2G4M27D_CMD_R_REGISTER | (reg & 0x1F), buffer, bytes); }
+    __always_inline void writeRegisterMulti(uint8_t reg, const uint8_t *buffer, size_t bytes) { write_burst(E01C2G4M27D_CMD_W_REGISTER | (reg & 0x1F), buffer, bytes); }
     __always_inline uint8_t get_status() { return strobe(0xFF); }
     __always_inline void ceLow() { gpio_put(m_ce, 0); }
     __always_inline void ceHigh() { gpio_put(m_ce, 1); }
-    __always_inline void flush_tx() { strobe(CMD_FLUSH_TX); }
-    __always_inline void flush_rx() { strobe(CMD_FLUSH_RX); }
+    __always_inline void flush_tx() { strobe(E01C2G4M27D_CMD_FLUSH_TX); }
+    __always_inline void flush_rx() { strobe(E01C2G4M27D_CMD_FLUSH_RX); }
 };
