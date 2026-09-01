@@ -45,7 +45,6 @@ set(MY_LIBRARIES
         LedControl
         MultiCore
         BMI270
-        ESC
         GPS
         E01C2G4M27D
         HighSPI
