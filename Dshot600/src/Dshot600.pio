@@ -1,0 +1,44 @@
+.program dshot
+.side_set 1 opt
+
+; Each bit takes exactly 10 cycles. 
+; State machine clock must be set to 6,000,000 Hz.
+
+.wrap_target
+bitloop:
+    out x, 1       side 0 [1] ; (2 cycles) Drive low from previous bit. Pull 1 bit into X.
+    jmp !x, do_0   side 1 [3] ; (4 cycles) Drive high. If X is 0, jump to do_0.
+do_1:
+    jmp bitloop    side 1 [3] ; (4 cycles) Bit is 1. Keep high, then loop back.
+do_0:
+    nop            side 0 [3] ; (4 cycles) Bit is 0. Drive low early, then loop back.
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void dshot_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    // Set up the GPIO pin for PIO control
+    pio_gpio_init(pio, pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    pio_sm_config c = dshot_program_get_default_config(offset);
+    
+    // Configure the side-set pin mapping
+    sm_config_set_sideset_pins(&c, pin);
+    
+    // Configure shift register: shift left (MSB first), enable autopull, 16 bits
+    sm_config_set_out_shift(&c, false, true, 16); 
+
+    // Combine RX and TX FIFOs to give us a deeper 8-word TX FIFO
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    // Calculate and apply clock divider for exactly 6 MHz
+    float div = (float)clock_get_hz(clk_sys) / 6000000.0f;
+    sm_config_set_clkdiv(&c, div);
+
+    // Initialize and start the state machine
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
