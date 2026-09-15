@@ -1,5 +1,5 @@
 #pragma once
-#include "Dshot600.h"
+#include "DShot600.h"
 
 /**
  * Motors location:

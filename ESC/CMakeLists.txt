@@ -11,6 +11,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib
         hardware_pio
         hardware_dma
-        Dshot600
+        DShot600
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

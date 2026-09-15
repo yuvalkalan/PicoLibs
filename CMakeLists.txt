@@ -49,7 +49,7 @@ set(MY_LIBRARIES
         E01C2G4M27D
         HighSPI
         HighI2C
-        Dshot600
+        DShot600
         ADS1115
         ESC
 )
