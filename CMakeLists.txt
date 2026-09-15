@@ -48,6 +48,9 @@ set(MY_LIBRARIES
         GPS
         E01C2G4M27D
         HighSPI
+        HighI2C
+        Dshot600
+        ADS1115
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
