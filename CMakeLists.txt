@@ -51,6 +51,7 @@ set(MY_LIBRARIES
         HighI2C
         Dshot600
         ADS1115
+        ESC
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
