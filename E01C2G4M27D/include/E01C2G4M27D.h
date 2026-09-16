@@ -16,7 +16,7 @@ public:
     // Constructor maps the hardware SPI instance and GPIO pins
     E01C2G4M27D(spi_inst_t *spi, uint ce, uint csn, uint sck, uint mosi, uint miso, uint irq);
 
-    void begin();
+    void init();
 
     // Configuration
     void set_channel(uint8_t channel); // 0-125

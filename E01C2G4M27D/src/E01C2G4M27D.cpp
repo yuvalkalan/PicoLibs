@@ -5,7 +5,7 @@ E01C2G4M27D::E01C2G4M27D(spi_inst_t *spi, uint ce, uint csn, uint sck, uint mosi
 {
 }
 
-void E01C2G4M27D::begin()
+void E01C2G4M27D::init()
 {
     // Initialize hardware SPI
     init_spi();
