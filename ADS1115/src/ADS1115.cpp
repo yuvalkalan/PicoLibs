@@ -133,3 +133,26 @@ uint32_t ADS1115::get_conversion_delay()
         return 9;
     }
 }
+
+void ADS1115::set_comparator_config(CompMode mode, CompPol pol, CompLat lat, CompQue que)
+{
+    m_config.bits.comp_mode = mode;
+    m_config.bits.comp_pol = pol;
+    m_config.bits.comp_lat = lat;
+    m_config.bits.comp_que = que;
+}
+
+void ADS1115::set_thresholds(int16_t lo_thresh, int16_t hi_thresh)
+{
+    uint8_t buf[2];
+
+    // Format and write Low Threshold (Min)
+    buf[0] = (lo_thresh >> 8) & 0xFF; // MSB
+    buf[1] = lo_thresh & 0xFF;        // LSB
+    write_burst(ADS1115_REG_POINTER_LO_THRESH, buf, 2);
+
+    // Format and write High Threshold (Max)
+    buf[0] = (hi_thresh >> 8) & 0xFF; // MSB
+    buf[1] = hi_thresh & 0xFF;        // LSB
+    write_burst(ADS1115_REG_POINTER_HI_THRESH, buf, 2);
+}

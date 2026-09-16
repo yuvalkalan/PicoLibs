@@ -11,6 +11,8 @@
 
 #define ADS1115_REG_POINTER_CONVERT 0x00
 #define ADS1115_REG_POINTER_CONFIG 0x01
+#define ADS1115_REG_POINTER_LO_THRESH 0x02
+#define ADS1115_REG_POINTER_HI_THRESH 0x03
 
 class ADS1115 : public HighI2C
 {
@@ -140,6 +142,12 @@ public:
 
     // Helper to convert ADC value to Volts
     float compute_volts(int16_t adc_val);
+
+    // Configures the comparator behavior
+    void set_comparator_config(CompMode mode, CompPol pol, CompLat lat, CompQue que);
+
+    // Sets the minimum (Lo) and maximum (Hi) thresholds in raw ADC values
+    void set_thresholds(int16_t lo_thresh, int16_t hi_thresh);
 
 private:
     // Gets the delay time in ms needed for the current data rate
