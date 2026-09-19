@@ -8,9 +8,34 @@ DShot600::DShot600(PIO pio, uint sm, uint pin, uint dma_chan)
 void DShot600::init()
 {
     // 1. Initialize the PIO
-    uint offset = pio_add_program(m_pio, &dshot600_program);
+    // using static variable to ensure the program is only added once per PIO instance
+    uint8_t pio_number;
+#if PICO_RP2040
+    static int pio_program_offset[2] = {0, 0};
+#elif PICO_RP2350
+    static int pio_program_offset[3] = {0, 0, 0};
+#else
+#error "Target chip is not recognized!"
+#endif
+    if (m_pio == pio0)
+        pio_number = 0;
+    else if (m_pio == pio1)
+        pio_number = 1;
+    else
+    {
+#if PICO_RP2040
+        panic("Error: Invalid PIO instance. Must be pio0 or pio1.");
+#elif PICO_RP2350
+        if (m_pio == pio2 && pio_program_offset[2] == 0)
+            pio_number = 2;
+        else
+            panic("Error: Invalid PIO instance. Must be pio0, pio1 or pio2.");
+#endif
+    }
+    if (pio_program_offset[pio_number] == 0)
+        pio_program_offset[pio_number] = pio_add_program(m_pio, &dshot600_program);
 
-    pio_sm_config c = dshot600_program_get_default_config(offset);
+    pio_sm_config c = dshot600_program_get_default_config(pio_program_offset[pio_number]);
 
     // Set PIO pin directions
     pio_gpio_init(m_pio, m_pin);
@@ -25,7 +50,7 @@ void DShot600::init()
     float div = (float)clock_get_hz(clk_sys) / 12000000.0f;
     sm_config_set_clkdiv(&c, div);
 
-    pio_sm_init(m_pio, m_sm, offset, &c);
+    pio_sm_init(m_pio, m_sm, pio_program_offset[pio_number], &c);
 
     // 2. Initialize the DMA
     dma_channel_config dma_c = dma_channel_get_default_config(m_dma_chan);
@@ -40,7 +65,7 @@ void DShot600::init()
     channel_config_set_dreq(&dma_c, pio_get_dreq(m_pio, m_sm, true));
 
     // Configure DMA but don't start yet. Maximum possible transfers.
-    // TODO: fix number of transfers for safer moethod
+    // TODO: fix number of transfers for safer method
     dma_channel_configure(
         m_dma_chan,
         &dma_c,

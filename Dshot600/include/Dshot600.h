@@ -3,7 +3,25 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
-
+/*
+ * DShot600 is a class that implements the DShot600 protocol for controlling ESCs (Electronic Speed Controllers) using the Raspberry Pi Pico's PIO (Programmable Input/Output) and DMA (Direct Memory Access) features.
+ *
+ * The DShot600 protocol is a digital communication protocol used to control brushless motors in drones and other applications. It provides precise control over motor speed and direction, as well as additional features like telemetry and special commands.
+ *
+ * The DShot600 class allows you to initialize the PIO, configure the state machine, set throttle values, and start/stop the continuous DMA transfer for sending DShot600 signals to the ESCs.
+ *
+ * The class also defines an enumeration of special commands that can be sent to the ESCs, such as beeping, requesting telemetry data, changing motor spin direction, enabling/disabling 3D mode, and more.
+ *
+ * Usage:
+ * 1. Create an instance of the DShot600 class by specifying the PIO instance, state machine index, GPIO pin connected to the ESC signal, and DMA channel to use.
+ * 2. Call the init() method to initialize the PIO and DMA.
+ * 3. Use set_throttle() to set the desired throttle value (0-2047) or send special commands (1-47).
+ * 4. Call start() to begin continuous DMA transfer of DShot600 signals to the ESCs.
+ * 5. Call stop() to stop the DMA transfer and reset the PIO when needed.
+ *
+ * Note: For best memory usage, use the same PIO block for all DShot600 instances.
+ * Note: The DShot600 class is designed for use with Raspberry Pi Pico or compatible boards that support PIO and DMA features.
+ */
 class DShot600
 {
 
