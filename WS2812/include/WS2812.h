@@ -24,7 +24,7 @@ public:
      * @param dma_chan DMA channel to use for data transfer
      * @param num_leds Number of LEDs in the WS2812 strip
      */
-    WS2812(PIO pio, uint sm, uint pin, uint dma_chan, uint num_leds);
+    WS2812(PIO pio, uint sm, uint pin, uint num_leds, int dma_chan = -1);
 
     /**
      * Destroys the WS2812 instance and frees the internal pixel buffer.

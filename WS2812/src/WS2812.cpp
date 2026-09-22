@@ -4,8 +4,8 @@
 #include "HighPIO.h"
 #include <string.h>
 
-WS2812::WS2812(PIO pio, uint sm, uint pin, uint dma_chan, uint num_leds)
-    : m_pio(pio), m_sm(sm), m_pin(pin), m_dma_chan(dma_chan), m_num_leds(num_leds)
+WS2812::WS2812(PIO pio, uint sm, uint pin, uint num_leds, int dma_chan)
+    : m_pio(pio), m_sm(sm), m_pin(pin), m_dma_chan(dma_chan == -1 ? dma_claim_unused_channel(true) : dma_chan), m_num_leds(num_leds)
 {
     m_dma_buffer = new uint32_t[m_num_leds];
     clear();
