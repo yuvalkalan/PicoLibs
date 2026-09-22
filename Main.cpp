@@ -151,6 +151,7 @@
 #include "pico/stdlib.h"
 #include "WS2812.h"
 
+using namespace WS2812Colors;
 int main()
 {
     stdio_init_all();
@@ -161,41 +162,19 @@ int main()
     const uint SM_IDX = 0;
 
     // Create a Ws2812 instance using pio0, state machine 0, pin 15, and DMA channel 0.
-    WS2812 led_strip(pio0, SM_IDX, PIN, DMA_CHAN, NUM_LEDS);
+    WS2812 led(pio1, 0, 16, 1);
 
     // Initialize peripherals
-    led_strip.init();
-
+    led.init();
+    WS2812::RGB values[] = {RED, GREEN, BLUE, WHITE, BLACK, SILVER, GRAY};
     while (true)
     {
-        // 1. Set all pixels to red
-        for (uint i = 0; i < NUM_LEDS; i++)
+        for (const auto &color : values)
         {
-            led_strip.set_pixel_color(i, 255, 0, 0);
+            led.set_pixel_color(0, color);
+            led.show();
+            sleep_ms(100);
         }
-        led_strip.show();
-        sleep_ms(1000);
-
-        // 2. Set all pixels to green
-        for (uint i = 0; i < NUM_LEDS; i++)
-        {
-            led_strip.set_pixel_color(i, 0, 255, 0);
-        }
-        led_strip.show();
-        sleep_ms(1000);
-
-        // 3. Set all pixels to blue
-        for (uint i = 0; i < NUM_LEDS; i++)
-        {
-            led_strip.set_pixel_color(i, 0, 0, 255);
-        }
-        led_strip.show();
-        sleep_ms(1000);
-
-        // 4. Clear the strip
-        led_strip.clear();
-        led_strip.show();
-        sleep_ms(1000);
     }
 
     return 0;

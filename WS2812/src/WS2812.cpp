@@ -81,6 +81,11 @@ void WS2812::set_pixel_color(uint index, uint8_t r, uint8_t g, uint8_t b)
     m_dma_buffer[index] = ((uint32_t)g << 24) | ((uint32_t)r << 16) | ((uint32_t)b << 8);
 }
 
+void WS2812::set_pixel_color(uint index, RGB color)
+{
+    set_pixel_color(index, color.r, color.g, color.b);
+}
+
 void WS2812::clear()
 {
     memset(m_dma_buffer, 0, m_num_leds * sizeof(uint32_t));
