@@ -110,7 +110,7 @@ public:
      * @param pin GPIO pin connected to ESC signal
      * @param dma_chan DMA channel to use
      */
-    DShot600(PIO pio, uint sm, uint pin, uint dma_chan);
+    DShot600(PIO pio, uint sm, uint pin, int dma_chan = -1); // use -1 to auto-claim a DMA channel
 
     // Initializes PIO, DMA, and GPIO
     void init();

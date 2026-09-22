@@ -1,6 +1,7 @@
 #include "WS2812.h"
 #include "hardware/clocks.h"
 #include "WS2812.pio.h"
+#include "HighPIO.h"
 #include <string.h>
 
 WS2812::WS2812(PIO pio, uint sm, uint pin, uint dma_chan, uint num_leds)
@@ -18,39 +19,9 @@ WS2812::~WS2812()
 void WS2812::init()
 {
     // 1. Initialize the PIO
-    // using static variable to ensure the program is only added once per PIO instance
-    uint8_t pio_number;
-#if PICO_RP2040
-    static uint pio_program_offset[2] = {0, 0};
+    uint offset = pio_add_program_once(m_pio, &ws2812_program);
 
-#elif PICO_RP2350
-    static uint pio_program_offset[3] = {0, 0, 0};
-
-#else
-#error "Target chip is not recognized!"
-#endif
-    if (m_pio == pio0)
-        pio_number = 0;
-    else if (m_pio == pio1)
-        pio_number = 1;
-    else
-    {
-#if PICO_RP2040
-        panic("Error: Invalid PIO instance. Must be pio0 or pio1.");
-
-#elif PICO_RP2350
-        if (m_pio == pio2 && pio_program_offset[2] == 0)
-            pio_number = 2;
-        else
-            panic("Error: Invalid PIO instance. Must be pio0, pio1 or pio2.");
-
-#endif
-    }
-
-    if (pio_program_offset[pio_number] == 0)
-        pio_program_offset[pio_number] = pio_add_program(m_pio, &ws2812_program);
-
-    pio_sm_config c = ws2812_program_get_default_config(pio_program_offset[pio_number]);
+    pio_sm_config c = ws2812_program_get_default_config(offset);
 
     // Set PIO pin directions
     pio_gpio_init(m_pio, m_pin);
@@ -68,7 +39,7 @@ void WS2812::init()
     // Join FIFOs to give the state machine more TX capacity
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
 
-    pio_sm_init(m_pio, m_sm, pio_program_offset[pio_number], &c);
+    pio_sm_init(m_pio, m_sm, offset, &c);
     pio_sm_set_enabled(m_pio, m_sm, true);
 
     // 2. Initialize the DMA

@@ -14,5 +14,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         hardware_pio
         hardware_clocks
         hardware_dma
+        HighPIO
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

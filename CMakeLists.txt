@@ -52,6 +52,8 @@ set(MY_LIBRARIES
         DShot600
         ADS1115
         ESC
+        WS2812
+        HighPIO
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)
@@ -82,6 +84,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         hardware_spi
         hardware_i2c
         hardware_interp        
+        hardware_pio
+        hardware_dma
         pico_rand
         )
 
