@@ -11,7 +11,9 @@ target_sources(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib    
-        pico_unique_id    
+        pico_unique_id
+        Logger
+        MultiCore
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
