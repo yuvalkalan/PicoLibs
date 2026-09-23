@@ -41,6 +41,7 @@ set(MY_LIBRARIES
         ConnectCC1101
         SerialIn
         UniqueID
+        HighFlash
         Logger
         LedControl
         MultiCore
