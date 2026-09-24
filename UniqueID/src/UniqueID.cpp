@@ -8,7 +8,7 @@ void print_id()
     // The SDK automatically fetches the ID and formats it as a hex string
     pico_get_unique_board_id_string(id_str, id_len);
 
-    Logger::print(LogLevel::INFO, "Unique ID: 0x%s", id_str);
+    Logger::print(LogLevel::INFO, "Unique ID: 0x%s\n", id_str);
 }
 
 bool check_id(pico_unique_board_id_t *id)
