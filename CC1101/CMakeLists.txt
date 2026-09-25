@@ -10,9 +10,9 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_stdlib
         hardware_spi
-        hardware_i2c
-        hardware_interp
+        # hardware_interp
         Logger
         MultiCore
+        HighSPI
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

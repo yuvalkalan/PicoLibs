@@ -18,5 +18,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         CC1101
         Logger
         MultiCore
+        HighSPI
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)

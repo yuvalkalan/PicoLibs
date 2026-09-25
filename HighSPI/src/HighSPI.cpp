@@ -1,9 +1,5 @@
 #include "HighSPI.h"
 
-// using these functions as macros
-// __always_inline void HighSPI::select() { gpio_put(m_csn, 0); }
-// __always_inline void HighSPI::deselect() { gpio_put(m_csn, 1); }
-
 uint8_t HighSPI::strobe(uint8_t cmd)
 {
     select();
