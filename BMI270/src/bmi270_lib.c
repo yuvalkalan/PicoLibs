@@ -1,40 +1,40 @@
 /**
-* Copyright (c) 2023 Bosch Sensortec GmbH. All rights reserved.
-*
-* BSD-3-Clause
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are met:
-*
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-*
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the distribution.
-*
-* 3. Neither the name of the copyright holder nor the names of its
-*    contributors may be used to endorse or promote products derived from
-*    this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-* COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-* STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-* IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-* POSSIBILITY OF SUCH DAMAGE.
-*
-* @file       bmi270.c
-* @date       2023-05-03
-* @version    v2.86.1
-*
-*/
+ * Copyright (c) 2023 Bosch Sensortec GmbH. All rights reserved.
+ *
+ * BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+ * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @file       bmi270.c
+ * @date       2023-05-03
+ * @version    v2.86.1
+ *
+ */
 
 /***************************************************************************/
 
@@ -480,51 +480,49 @@ const uint8_t bmi270_config_file[] = {
     0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00,
     0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e,
     0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80,
-    0x2e, 0x00, 0xc1
-};
+    0x2e, 0x00, 0xc1};
 
 /*! @name  Global array that stores the feature input configuration of BMI270 */
 const struct bmi2_feature_config bmi270_feat_in[BMI270_MAX_FEAT_IN] = {
-    { .type = BMI2_CONFIG_ID, .page = BMI2_PAGE_1, .start_addr = BMI270_CONFIG_ID_STRT_ADDR },
-    { .type = BMI2_MAX_BURST_LEN, .page = BMI2_PAGE_1, .start_addr = BMI270_MAX_BURST_LEN_STRT_ADDR },
-    { .type = BMI2_CRT_GYRO_SELF_TEST, .page = BMI2_PAGE_1, .start_addr = BMI270_CRT_GYRO_SELF_TEST_STRT_ADDR },
-    { .type = BMI2_ABORT_CRT_GYRO_SELF_TEST, .page = BMI2_PAGE_1, .start_addr = BMI270_ABORT_STRT_ADDR },
-    { .type = BMI2_AXIS_MAP, .page = BMI2_PAGE_1, .start_addr = BMI270_AXIS_MAP_STRT_ADDR },
-    { .type = BMI2_GYRO_SELF_OFF, .page = BMI2_PAGE_1, .start_addr = BMI270_GYRO_SELF_OFF_STRT_ADDR },
-    { .type = BMI2_NVM_PROG_PREP, .page = BMI2_PAGE_1, .start_addr = BMI270_NVM_PROG_PREP_STRT_ADDR },
-    { .type = BMI2_GYRO_GAIN_UPDATE, .page = BMI2_PAGE_1, .start_addr = BMI270_GYRO_GAIN_UPDATE_STRT_ADDR },
-    { .type = BMI2_ANY_MOTION, .page = BMI2_PAGE_1, .start_addr = BMI270_ANY_MOT_STRT_ADDR },
-    { .type = BMI2_NO_MOTION, .page = BMI2_PAGE_2, .start_addr = BMI270_NO_MOT_STRT_ADDR },
-    { .type = BMI2_SIG_MOTION, .page = BMI2_PAGE_2, .start_addr = BMI270_SIG_MOT_STRT_ADDR },
-    { .type = BMI2_STEP_COUNTER_PARAMS, .page = BMI2_PAGE_3, .start_addr = BMI270_STEP_CNT_1_STRT_ADDR },
-    { .type = BMI2_STEP_DETECTOR, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR },
-    { .type = BMI2_STEP_COUNTER, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR },
-    { .type = BMI2_STEP_ACTIVITY, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR },
-    { .type = BMI2_WRIST_GESTURE, .page = BMI2_PAGE_6, .start_addr = BMI270_WRIST_GEST_STRT_ADDR },
-    { .type = BMI2_WRIST_WEAR_WAKE_UP, .page = BMI2_PAGE_7, .start_addr = BMI270_WRIST_WEAR_WAKE_UP_STRT_ADDR },
+    {.type = BMI2_CONFIG_ID, .page = BMI2_PAGE_1, .start_addr = BMI270_CONFIG_ID_STRT_ADDR},
+    {.type = BMI2_MAX_BURST_LEN, .page = BMI2_PAGE_1, .start_addr = BMI270_MAX_BURST_LEN_STRT_ADDR},
+    {.type = BMI2_CRT_GYRO_SELF_TEST, .page = BMI2_PAGE_1, .start_addr = BMI270_CRT_GYRO_SELF_TEST_STRT_ADDR},
+    {.type = BMI2_ABORT_CRT_GYRO_SELF_TEST, .page = BMI2_PAGE_1, .start_addr = BMI270_ABORT_STRT_ADDR},
+    {.type = BMI2_AXIS_MAP, .page = BMI2_PAGE_1, .start_addr = BMI270_AXIS_MAP_STRT_ADDR},
+    {.type = BMI2_GYRO_SELF_OFF, .page = BMI2_PAGE_1, .start_addr = BMI270_GYRO_SELF_OFF_STRT_ADDR},
+    {.type = BMI2_NVM_PROG_PREP, .page = BMI2_PAGE_1, .start_addr = BMI270_NVM_PROG_PREP_STRT_ADDR},
+    {.type = BMI2_GYRO_GAIN_UPDATE, .page = BMI2_PAGE_1, .start_addr = BMI270_GYRO_GAIN_UPDATE_STRT_ADDR},
+    {.type = BMI2_ANY_MOTION, .page = BMI2_PAGE_1, .start_addr = BMI270_ANY_MOT_STRT_ADDR},
+    {.type = BMI2_NO_MOTION, .page = BMI2_PAGE_2, .start_addr = BMI270_NO_MOT_STRT_ADDR},
+    {.type = BMI2_SIG_MOTION, .page = BMI2_PAGE_2, .start_addr = BMI270_SIG_MOT_STRT_ADDR},
+    {.type = BMI2_STEP_COUNTER_PARAMS, .page = BMI2_PAGE_3, .start_addr = BMI270_STEP_CNT_1_STRT_ADDR},
+    {.type = BMI2_STEP_DETECTOR, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR},
+    {.type = BMI2_STEP_COUNTER, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR},
+    {.type = BMI2_STEP_ACTIVITY, .page = BMI2_PAGE_6, .start_addr = BMI270_STEP_CNT_4_STRT_ADDR},
+    {.type = BMI2_WRIST_GESTURE, .page = BMI2_PAGE_6, .start_addr = BMI270_WRIST_GEST_STRT_ADDR},
+    {.type = BMI2_WRIST_WEAR_WAKE_UP, .page = BMI2_PAGE_7, .start_addr = BMI270_WRIST_WEAR_WAKE_UP_STRT_ADDR},
 };
 
 /*! @name  Global array that stores the feature output configuration */
 const struct bmi2_feature_config bmi270_feat_out[BMI270_MAX_FEAT_OUT] = {
-    { .type = BMI2_STEP_COUNTER, .page = BMI2_PAGE_0, .start_addr = BMI270_STEP_CNT_OUT_STRT_ADDR },
-    { .type = BMI2_STEP_ACTIVITY, .page = BMI2_PAGE_0, .start_addr = BMI270_STEP_ACT_OUT_STRT_ADDR },
-    { .type = BMI2_WRIST_GESTURE, .page = BMI2_PAGE_0, .start_addr = BMI270_WRIST_GEST_OUT_STRT_ADDR },
-    { .type = BMI2_GYRO_GAIN_UPDATE, .page = BMI2_PAGE_0, .start_addr = BMI270_GYR_USER_GAIN_OUT_STRT_ADDR },
-    { .type = BMI2_GYRO_CROSS_SENSE, .page = BMI2_PAGE_0, .start_addr = BMI270_GYRO_CROSS_SENSE_STRT_ADDR },
-    { .type = BMI2_NVM_STATUS, .page = BMI2_PAGE_0, .start_addr = BMI270_NVM_VFRM_OUT_STRT_ADDR },
-    { .type = BMI2_VFRM_STATUS, .page = BMI2_PAGE_0, .start_addr = BMI270_NVM_VFRM_OUT_STRT_ADDR }
-};
+    {.type = BMI2_STEP_COUNTER, .page = BMI2_PAGE_0, .start_addr = BMI270_STEP_CNT_OUT_STRT_ADDR},
+    {.type = BMI2_STEP_ACTIVITY, .page = BMI2_PAGE_0, .start_addr = BMI270_STEP_ACT_OUT_STRT_ADDR},
+    {.type = BMI2_WRIST_GESTURE, .page = BMI2_PAGE_0, .start_addr = BMI270_WRIST_GEST_OUT_STRT_ADDR},
+    {.type = BMI2_GYRO_GAIN_UPDATE, .page = BMI2_PAGE_0, .start_addr = BMI270_GYR_USER_GAIN_OUT_STRT_ADDR},
+    {.type = BMI2_GYRO_CROSS_SENSE, .page = BMI2_PAGE_0, .start_addr = BMI270_GYRO_CROSS_SENSE_STRT_ADDR},
+    {.type = BMI2_NVM_STATUS, .page = BMI2_PAGE_0, .start_addr = BMI270_NVM_VFRM_OUT_STRT_ADDR},
+    {.type = BMI2_VFRM_STATUS, .page = BMI2_PAGE_0, .start_addr = BMI270_NVM_VFRM_OUT_STRT_ADDR}};
 
 /*! @name  Global array that stores the feature interrupts of BMI270 */
 struct bmi2_map_int bmi270_map_int[BMI270_MAX_INT_MAP] = {
-    { .type = BMI2_SIG_MOTION, .sens_map_int = BMI270_INT_SIG_MOT_MASK },
-    { .type = BMI2_STEP_COUNTER, .sens_map_int = BMI270_INT_STEP_COUNTER_MASK },
-    { .type = BMI2_STEP_DETECTOR, .sens_map_int = BMI270_INT_STEP_DETECTOR_MASK },
-    { .type = BMI2_STEP_ACTIVITY, .sens_map_int = BMI270_INT_STEP_ACT_MASK },
-    { .type = BMI2_WRIST_GESTURE, .sens_map_int = BMI270_INT_WRIST_GEST_MASK },
-    { .type = BMI2_WRIST_WEAR_WAKE_UP, .sens_map_int = BMI270_INT_WRIST_WEAR_WAKEUP_MASK },
-    { .type = BMI2_ANY_MOTION, .sens_map_int = BMI270_INT_ANY_MOT_MASK },
-    { .type = BMI2_NO_MOTION, .sens_map_int = BMI270_INT_NO_MOT_MASK },
+    {.type = BMI2_SIG_MOTION, .sens_map_int = BMI270_INT_SIG_MOT_MASK},
+    {.type = BMI2_STEP_COUNTER, .sens_map_int = BMI270_INT_STEP_COUNTER_MASK},
+    {.type = BMI2_STEP_DETECTOR, .sens_map_int = BMI270_INT_STEP_DETECTOR_MASK},
+    {.type = BMI2_STEP_ACTIVITY, .sens_map_int = BMI270_INT_STEP_ACT_MASK},
+    {.type = BMI2_WRIST_GESTURE, .sens_map_int = BMI270_INT_WRIST_GEST_MASK},
+    {.type = BMI2_WRIST_WEAR_WAKE_UP, .sens_map_int = BMI270_INT_WRIST_WEAR_WAKEUP_MASK},
+    {.type = BMI2_ANY_MOTION, .sens_map_int = BMI270_INT_ANY_MOT_MASK},
+    {.type = BMI2_NO_MOTION, .sens_map_int = BMI270_INT_NO_MOT_MASK},
 };
 
 /******************************************************************************/
@@ -1685,34 +1683,34 @@ int8_t bmi270_get_feature_data(struct bmi2_feat_sensor_data *feature_data, uint8
                 {
                     switch (feature_data[loop].type)
                     {
-                        case BMI2_STEP_COUNTER:
+                    case BMI2_STEP_COUNTER:
 
-                            /* Get step counter output */
-                            rslt = get_step_counter_output(&feature_data[loop].sens_data.step_counter_output, dev);
-                            break;
-                        case BMI2_STEP_ACTIVITY:
+                        /* Get step counter output */
+                        rslt = get_step_counter_output(&feature_data[loop].sens_data.step_counter_output, dev);
+                        break;
+                    case BMI2_STEP_ACTIVITY:
 
-                            /* Get step activity output */
-                            rslt = get_step_activity_output(&feature_data[loop].sens_data.activity_output, dev);
-                            break;
-                        case BMI2_NVM_STATUS:
+                        /* Get step activity output */
+                        rslt = get_step_activity_output(&feature_data[loop].sens_data.activity_output, dev);
+                        break;
+                    case BMI2_NVM_STATUS:
 
-                            /* Get NVM error status  */
-                            rslt = get_nvm_error_status(&feature_data[loop].sens_data.nvm_status, dev);
-                            break;
-                        case BMI2_VFRM_STATUS:
+                        /* Get NVM error status  */
+                        rslt = get_nvm_error_status(&feature_data[loop].sens_data.nvm_status, dev);
+                        break;
+                    case BMI2_VFRM_STATUS:
 
-                            /* Get VFRM error status  */
-                            rslt = get_vfrm_error_status(&feature_data[loop].sens_data.vfrm_status, dev);
-                            break;
-                        case BMI2_WRIST_GESTURE:
+                        /* Get VFRM error status  */
+                        rslt = get_vfrm_error_status(&feature_data[loop].sens_data.vfrm_status, dev);
+                        break;
+                    case BMI2_WRIST_GESTURE:
 
-                            /* Get wrist gesture status  */
-                            rslt = get_wrist_gest_status(&feature_data[loop].sens_data.wrist_gesture_output, dev);
-                            break;
-                        default:
-                            rslt = BMI2_E_INVALID_SENSOR;
-                            break;
+                        /* Get wrist gesture status  */
+                        rslt = get_wrist_gest_status(&feature_data[loop].sens_data.wrist_gesture_output, dev);
+                        break;
+                    default:
+                        rslt = BMI2_E_INVALID_SENSOR;
+                        break;
                     }
 
                     /* Return error if any of the get sensor data fails */
@@ -1749,7 +1747,7 @@ int8_t bmi270_update_gyro_user_gain(const struct bmi2_gyro_user_gain_config *use
     int8_t rslt;
 
     /* Variable to select sensor */
-    uint8_t sens_sel[2] = { BMI2_GYRO, BMI2_GYRO_GAIN_UPDATE };
+    uint8_t sens_sel[2] = {BMI2_GYRO, BMI2_GYRO_GAIN_UPDATE};
 
     /* Structure to define sensor configurations */
     struct bmi2_sens_config sens_cfg;
@@ -1845,7 +1843,7 @@ int8_t bmi270_read_gyro_user_gain(struct bmi2_gyro_user_gain_data *gyr_usr_gain,
     int8_t rslt;
 
     /* Variable to define register data */
-    uint8_t reg_data[3] = { 0 };
+    uint8_t reg_data[3] = {0};
 
     /* Null-pointer check */
     rslt = null_ptr_check(dev);
@@ -1892,20 +1890,20 @@ int8_t bmi270_map_feat_int(const struct bmi2_sens_int_config *sens_int, uint8_t 
         {
             switch (sens_int[loop].type)
             {
-                case BMI2_SIG_MOTION:
-                case BMI2_WRIST_GESTURE:
-                case BMI2_ANY_MOTION:
-                case BMI2_NO_MOTION:
-                case BMI2_STEP_COUNTER:
-                case BMI2_STEP_DETECTOR:
-                case BMI2_STEP_ACTIVITY:
-                case BMI2_WRIST_WEAR_WAKE_UP:
+            case BMI2_SIG_MOTION:
+            case BMI2_WRIST_GESTURE:
+            case BMI2_ANY_MOTION:
+            case BMI2_NO_MOTION:
+            case BMI2_STEP_COUNTER:
+            case BMI2_STEP_DETECTOR:
+            case BMI2_STEP_ACTIVITY:
+            case BMI2_WRIST_WEAR_WAKE_UP:
 
-                    rslt = bmi2_map_feat_int(sens_int[loop].type, sens_int[loop].hw_int_pin, dev);
-                    break;
-                default:
-                    rslt = BMI2_E_INVALID_SENSOR;
-                    break;
+                rslt = bmi2_map_feat_int(sens_int[loop].type, sens_int[loop].hw_int_pin, dev);
+                break;
+            default:
+                rslt = BMI2_E_INVALID_SENSOR;
+                break;
             }
 
             /* Return error if interrupt mapping fails */
@@ -1962,51 +1960,51 @@ static int8_t select_sensor(const uint8_t *sens_list, uint8_t n_sens, uint64_t *
     {
         switch (sens_list[count])
         {
-            case BMI2_ACCEL:
-                *sensor_sel |= BMI2_ACCEL_SENS_SEL;
-                break;
-            case BMI2_GYRO:
-                *sensor_sel |= BMI2_GYRO_SENS_SEL;
-                break;
-            case BMI2_AUX:
-                *sensor_sel |= BMI2_AUX_SENS_SEL;
-                break;
-            case BMI2_TEMP:
-                *sensor_sel |= BMI2_TEMP_SENS_SEL;
-                break;
-            case BMI2_SIG_MOTION:
-                *sensor_sel |= BMI2_SIG_MOTION_SEL;
-                break;
-            case BMI2_ANY_MOTION:
-                *sensor_sel |= BMI2_ANY_MOT_SEL;
-                break;
-            case BMI2_NO_MOTION:
-                *sensor_sel |= BMI2_NO_MOT_SEL;
-                break;
-            case BMI2_STEP_DETECTOR:
-                *sensor_sel |= BMI2_STEP_DETECT_SEL;
-                break;
-            case BMI2_STEP_COUNTER:
-                *sensor_sel |= BMI2_STEP_COUNT_SEL;
-                break;
-            case BMI2_STEP_ACTIVITY:
-                *sensor_sel |= BMI2_STEP_ACT_SEL;
-                break;
-            case BMI2_GYRO_GAIN_UPDATE:
-                *sensor_sel |= BMI2_GYRO_GAIN_UPDATE_SEL;
-                break;
-            case BMI2_GYRO_SELF_OFF:
-                *sensor_sel |= BMI2_GYRO_SELF_OFF_SEL;
-                break;
-            case BMI2_WRIST_GESTURE:
-                *sensor_sel |= BMI2_WRIST_GEST_SEL;
-                break;
-            case BMI2_WRIST_WEAR_WAKE_UP:
-                *sensor_sel |= BMI2_WRIST_WEAR_WAKE_UP_SEL;
-                break;
-            default:
-                rslt = BMI2_E_INVALID_SENSOR;
-                break;
+        case BMI2_ACCEL:
+            *sensor_sel |= BMI2_ACCEL_SENS_SEL;
+            break;
+        case BMI2_GYRO:
+            *sensor_sel |= BMI2_GYRO_SENS_SEL;
+            break;
+        case BMI2_AUX:
+            *sensor_sel |= BMI2_AUX_SENS_SEL;
+            break;
+        case BMI2_TEMP:
+            *sensor_sel |= BMI2_TEMP_SENS_SEL;
+            break;
+        case BMI2_SIG_MOTION:
+            *sensor_sel |= BMI2_SIG_MOTION_SEL;
+            break;
+        case BMI2_ANY_MOTION:
+            *sensor_sel |= BMI2_ANY_MOT_SEL;
+            break;
+        case BMI2_NO_MOTION:
+            *sensor_sel |= BMI2_NO_MOT_SEL;
+            break;
+        case BMI2_STEP_DETECTOR:
+            *sensor_sel |= BMI2_STEP_DETECT_SEL;
+            break;
+        case BMI2_STEP_COUNTER:
+            *sensor_sel |= BMI2_STEP_COUNT_SEL;
+            break;
+        case BMI2_STEP_ACTIVITY:
+            *sensor_sel |= BMI2_STEP_ACT_SEL;
+            break;
+        case BMI2_GYRO_GAIN_UPDATE:
+            *sensor_sel |= BMI2_GYRO_GAIN_UPDATE_SEL;
+            break;
+        case BMI2_GYRO_SELF_OFF:
+            *sensor_sel |= BMI2_GYRO_SELF_OFF_SEL;
+            break;
+        case BMI2_WRIST_GESTURE:
+            *sensor_sel |= BMI2_WRIST_GEST_SEL;
+            break;
+        case BMI2_WRIST_WEAR_WAKE_UP:
+            *sensor_sel |= BMI2_WRIST_WEAR_WAKE_UP_SEL;
+            break;
+        default:
+            rslt = BMI2_E_INVALID_SENSOR;
+            break;
         }
     }
 
@@ -2102,7 +2100,7 @@ static int8_t set_any_motion(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2111,7 +2109,7 @@ static int8_t set_any_motion(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for any-motion */
-    struct bmi2_feature_config any_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config any_mot_config = {0, 0, 0};
 
     /* Search for any-motion feature and extract its configurations details */
     feat_found = bmi2_extract_input_feat_config(&any_mot_config, BMI2_ANY_MOTION, dev);
@@ -2157,7 +2155,7 @@ static int8_t set_no_motion(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2166,7 +2164,7 @@ static int8_t set_no_motion(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for no-motion */
-    struct bmi2_feature_config no_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config no_mot_config = {0, 0, 0};
 
     /* Search for no-motion feature and extract its configurations details */
     feat_found = bmi2_extract_input_feat_config(&no_mot_config, BMI2_NO_MOTION, dev);
@@ -2212,7 +2210,7 @@ static int8_t set_step_detector(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2221,7 +2219,7 @@ static int8_t set_step_detector(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for step detector */
-    struct bmi2_feature_config step_det_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_det_config = {0, 0, 0};
 
     /* Search for step detector feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_det_config, BMI2_STEP_DETECTOR, dev);
@@ -2267,7 +2265,7 @@ static int8_t set_step_counter(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2276,7 +2274,7 @@ static int8_t set_step_counter(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for step counter */
-    struct bmi2_feature_config step_count_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_count_config = {0, 0, 0};
 
     /* Search for step counter feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_count_config, BMI2_STEP_COUNTER, dev);
@@ -2322,7 +2320,7 @@ static int8_t set_sig_motion(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2331,7 +2329,7 @@ static int8_t set_sig_motion(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for sig-motion */
-    struct bmi2_feature_config sig_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config sig_mot_config = {0, 0, 0};
 
     /* Search for sig-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&sig_mot_config, BMI2_SIG_MOTION, dev);
@@ -2377,7 +2375,7 @@ static int8_t set_step_activity(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2386,7 +2384,7 @@ static int8_t set_step_activity(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for step activity */
-    struct bmi2_feature_config step_act_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_act_config = {0, 0, 0};
 
     /* Search for step activity feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_act_config, BMI2_STEP_ACTIVITY, dev);
@@ -2435,7 +2433,7 @@ static int8_t set_gyro_self_offset_corr(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2444,7 +2442,7 @@ static int8_t set_gyro_self_offset_corr(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for self-offset correction */
-    struct bmi2_feature_config self_off_corr_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config self_off_corr_cfg = {0, 0, 0};
 
     /* Search for self-offset correction and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&self_off_corr_cfg, BMI2_GYRO_SELF_OFF, dev);
@@ -2492,7 +2490,7 @@ static int8_t set_wrist_gesture(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2501,7 +2499,7 @@ static int8_t set_wrist_gesture(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist gesture */
-    struct bmi2_feature_config wrist_gest_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_gest_cfg = {0, 0, 0};
 
     /* Search for wrist gesture and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_gest_cfg, BMI2_WRIST_GESTURE, dev);
@@ -2547,7 +2545,7 @@ static int8_t set_wrist_wear_wake_up(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2556,7 +2554,7 @@ static int8_t set_wrist_wear_wake_up(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist wear wake up */
-    struct bmi2_feature_config wrist_wake_up_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_wake_up_cfg = {0, 0, 0};
 
     /* Search for wrist wear wake up and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_wake_up_cfg, BMI2_WRIST_WEAR_WAKE_UP, dev);
@@ -2605,7 +2603,7 @@ static int8_t set_gyro_user_gain(uint8_t enable, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2614,7 +2612,7 @@ static int8_t set_gyro_user_gain(uint8_t enable, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature configuration for gyroscope user gain */
-    struct bmi2_feature_config gyr_user_gain_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config gyr_user_gain_cfg = {0, 0, 0};
 
     /* Search for user gain feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&gyr_user_gain_cfg, BMI2_GYRO_GAIN_UPDATE, dev);
@@ -2661,7 +2659,7 @@ static int8_t set_any_motion_config(const struct bmi2_any_motion_config *config,
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2673,10 +2671,10 @@ static int8_t set_any_motion_config(const struct bmi2_any_motion_config *config,
     uint8_t feat_found;
 
     /* Initialize feature configuration for any motion */
-    struct bmi2_feature_config any_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config any_mot_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for any-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&any_mot_config, BMI2_ANY_MOTION, dev);
@@ -2720,7 +2718,7 @@ static int8_t set_any_motion_config(const struct bmi2_any_motion_config *config,
             for (index = 0; index < idx; index++)
             {
                 feat_config[any_mot_config.start_addr +
-                            index] = *((uint8_t *) data_p + any_mot_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + any_mot_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -2745,7 +2743,7 @@ static int8_t set_no_motion_config(const struct bmi2_no_motion_config *config, s
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2757,10 +2755,10 @@ static int8_t set_no_motion_config(const struct bmi2_no_motion_config *config, s
     uint8_t feat_found;
 
     /* Initialize feature configuration for no-motion */
-    struct bmi2_feature_config no_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config no_mot_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for no-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&no_mot_config, BMI2_NO_MOTION, dev);
@@ -2804,7 +2802,7 @@ static int8_t set_no_motion_config(const struct bmi2_no_motion_config *config, s
             for (index = 0; index < idx; index++)
             {
                 feat_config[no_mot_config.start_addr +
-                            index] = *((uint8_t *) data_p + no_mot_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + no_mot_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -2829,7 +2827,7 @@ static int8_t set_sig_motion_config(const struct bmi2_sig_motion_config *config,
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -2841,10 +2839,10 @@ static int8_t set_sig_motion_config(const struct bmi2_sig_motion_config *config,
     uint8_t feat_found;
 
     /* Initialize feature configuration for sig-motion */
-    struct bmi2_feature_config sig_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config sig_mot_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for sig-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&sig_mot_config, BMI2_SIG_MOTION, dev);
@@ -2873,7 +2871,7 @@ static int8_t set_sig_motion_config(const struct bmi2_sig_motion_config *config,
             for (index = 0; index < idx; index++)
             {
                 feat_config[sig_mot_config.start_addr +
-                            index] = *((uint8_t *) data_p + sig_mot_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + sig_mot_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -2897,7 +2895,7 @@ static int8_t set_step_count_params_config(const uint16_t *step_count_params, st
     int8_t rslt = BMI2_OK;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define index */
     uint8_t index = 0;
@@ -2906,7 +2904,7 @@ static int8_t set_step_count_params_config(const uint16_t *step_count_params, st
     uint8_t feat_found;
 
     /* Initialize feature configuration for step counter parameters */
-    struct bmi2_feature_config step_params_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_params_config = {0, 0, 0};
 
     /* Variable to index the page number */
     uint8_t page_idx;
@@ -2939,7 +2937,7 @@ static int8_t set_step_count_params_config(const uint16_t *step_count_params, st
     uint8_t param_idx = 0;
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for step counter parameter feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_params_config, BMI2_STEP_COUNTER_PARAMS, dev);
@@ -2997,7 +2995,7 @@ static int8_t set_step_count_params_config(const uint16_t *step_count_params, st
                 for (index = 0; index < page_byte_idx; index++)
                 {
                     feat_config[step_params_config.start_addr +
-                                index] = *((uint8_t *) data_p + step_params_config.start_addr + index);
+                                index] = *((uint8_t *)data_p + step_params_config.start_addr + index);
                 }
 
                 /* Set the configuration back to the page */
@@ -3022,7 +3020,7 @@ static int8_t set_step_config(const struct bmi2_step_config *config, struct bmi2
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3034,10 +3032,10 @@ static int8_t set_step_config(const struct bmi2_step_config *config, struct bmi2
     uint8_t feat_found;
 
     /* Initialize feature configuration for step counter 4 */
-    struct bmi2_feature_config step_count_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_count_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for step counter feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_count_config, BMI2_STEP_COUNTER, dev);
@@ -3071,7 +3069,7 @@ static int8_t set_step_config(const struct bmi2_step_config *config, struct bmi2
             for (index = 0; index < idx; index++)
             {
                 feat_config[step_count_config.start_addr +
-                            index] = *((uint8_t *) data_p + step_count_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + step_count_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -3096,7 +3094,7 @@ static int8_t set_wrist_gest_config(const struct bmi2_wrist_gest_config *config,
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3108,10 +3106,10 @@ static int8_t set_wrist_gest_config(const struct bmi2_wrist_gest_config *config,
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist gesture */
-    struct bmi2_feature_config wrist_gest_config = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_gest_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for wrist gesture feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_gest_config, BMI2_WRIST_GESTURE, dev);
@@ -3152,7 +3150,7 @@ static int8_t set_wrist_gest_config(const struct bmi2_wrist_gest_config *config,
             for (index = 0; index < idx; index++)
             {
                 feat_config[wrist_gest_config.start_addr +
-                            index] = *((uint8_t *) data_p + wrist_gest_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + wrist_gest_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -3177,7 +3175,7 @@ static int8_t set_wrist_wear_wake_up_config(const struct bmi2_wrist_wear_wake_up
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3189,10 +3187,10 @@ static int8_t set_wrist_wear_wake_up_config(const struct bmi2_wrist_wear_wake_up
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist wear wake-up */
-    struct bmi2_feature_config wrist_wake_up_config = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_wake_up_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for wrist wear wake-up feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_wake_up_config, BMI2_WRIST_WEAR_WAKE_UP, dev);
@@ -3243,7 +3241,7 @@ static int8_t set_wrist_wear_wake_up_config(const struct bmi2_wrist_wear_wake_up
             for (index = 0; index < idx; index++)
             {
                 feat_config[wrist_wake_up_config.start_addr +
-                            index] = *((uint8_t *) data_p + wrist_wake_up_config.start_addr + index);
+                            index] = *((uint8_t *)data_p + wrist_wake_up_config.start_addr + index);
             }
 
             /* Set the configuration back to the page */
@@ -3268,7 +3266,7 @@ static int8_t get_any_motion_config(struct bmi2_any_motion_config *config, struc
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3286,7 +3284,7 @@ static int8_t get_any_motion_config(struct bmi2_any_motion_config *config, struc
     uint8_t feat_found;
 
     /* Initialize feature configuration for any-motion */
-    struct bmi2_feature_config any_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config any_mot_config = {0, 0, 0};
 
     /* Search for any-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&any_mot_config, BMI2_ANY_MOTION, dev);
@@ -3300,8 +3298,8 @@ static int8_t get_any_motion_config(struct bmi2_any_motion_config *config, struc
             idx = any_mot_config.start_addr;
 
             /* Get word to calculate duration, x, y and z select */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get duration */
@@ -3317,8 +3315,8 @@ static int8_t get_any_motion_config(struct bmi2_any_motion_config *config, struc
             config->select_z = (lsb_msb & BMI2_ANY_NO_MOT_Z_SEL_MASK) >> BMI2_ANY_NO_MOT_Z_SEL_POS;
 
             /* Get word to calculate threshold, output configuration from the same word */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get threshold */
@@ -3343,7 +3341,7 @@ static int8_t get_no_motion_config(struct bmi2_no_motion_config *config, struct 
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3361,7 +3359,7 @@ static int8_t get_no_motion_config(struct bmi2_no_motion_config *config, struct 
     uint8_t feat_found;
 
     /* Initialize feature configuration for no-motion */
-    struct bmi2_feature_config no_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config no_mot_config = {0, 0, 0};
 
     /* Search for no-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&no_mot_config, BMI2_NO_MOTION, dev);
@@ -3375,8 +3373,8 @@ static int8_t get_no_motion_config(struct bmi2_no_motion_config *config, struct 
             idx = no_mot_config.start_addr;
 
             /* Get word to calculate duration, x, y and z select */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get duration */
@@ -3392,8 +3390,8 @@ static int8_t get_no_motion_config(struct bmi2_no_motion_config *config, struct 
             config->select_z = (lsb_msb & BMI2_ANY_NO_MOT_Z_SEL_MASK) >> BMI2_ANY_NO_MOT_Z_SEL_POS;
 
             /* Get word to calculate threshold, output configuration from the same word */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get threshold */
@@ -3418,7 +3416,7 @@ static int8_t get_sig_motion_config(struct bmi2_sig_motion_config *config, struc
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3436,7 +3434,7 @@ static int8_t get_sig_motion_config(struct bmi2_sig_motion_config *config, struc
     uint8_t feat_found;
 
     /* Initialize feature configuration sig-motion */
-    struct bmi2_feature_config sig_mot_config = { 0, 0, 0 };
+    struct bmi2_feature_config sig_mot_config = {0, 0, 0};
 
     /* Search for sig-motion feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&sig_mot_config, BMI2_SIG_MOTION, dev);
@@ -3450,8 +3448,8 @@ static int8_t get_sig_motion_config(struct bmi2_sig_motion_config *config, struc
             idx = sig_mot_config.start_addr;
 
             /* Get word to calculate parameter 1 */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get parameter 1  */
@@ -3475,7 +3473,7 @@ static int8_t get_step_count_params_config(uint16_t *step_count_params, struct b
     int8_t rslt = BMI2_OK;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to set flag */
     uint8_t feat_found;
@@ -3490,7 +3488,7 @@ static int8_t get_step_count_params_config(uint16_t *step_count_params, struct b
     uint16_t lsb_msb = 0;
 
     /* Initialize feature configuration for step counter 1 */
-    struct bmi2_feature_config step_params_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_params_config = {0, 0, 0};
 
     /* Variable to index the page number */
     uint8_t page_idx;
@@ -3560,10 +3558,10 @@ static int8_t get_step_count_params_config(uint16_t *step_count_params, struct b
                 while (page_byte_idx < max_len)
                 {
                     /* Get word to calculate the parameter*/
-                    lsb = (uint16_t) feat_config[page_byte_idx++];
+                    lsb = (uint16_t)feat_config[page_byte_idx++];
                     if (page_byte_idx < max_len)
                     {
-                        msb = ((uint16_t) feat_config[page_byte_idx++] << 8);
+                        msb = ((uint16_t)feat_config[page_byte_idx++] << 8);
                     }
 
                     lsb_msb = lsb | msb;
@@ -3594,7 +3592,7 @@ static int8_t get_step_config(struct bmi2_step_config *config, struct bmi2_dev *
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3612,7 +3610,7 @@ static int8_t get_step_config(struct bmi2_step_config *config, struct bmi2_dev *
     uint8_t feat_found;
 
     /* Initialize feature configuration for step counter */
-    struct bmi2_feature_config step_count_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_count_config = {0, 0, 0};
 
     /* Search for step counter 4 feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&step_count_config, BMI2_STEP_COUNTER, dev);
@@ -3626,8 +3624,8 @@ static int8_t get_step_config(struct bmi2_step_config *config, struct bmi2_dev *
             idx = step_count_config.start_addr;
 
             /* Get word to calculate water-mark level and reset counter */
-            lsb = (uint16_t) feat_config[idx++];
-            msb = ((uint16_t) feat_config[idx++] << 8);
+            lsb = (uint16_t)feat_config[idx++];
+            msb = ((uint16_t)feat_config[idx++] << 8);
             lsb_msb = lsb | msb;
 
             /* Get water-mark level */
@@ -3655,7 +3653,7 @@ static int8_t get_wrist_gest_config(struct bmi2_wrist_gest_config *config, struc
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3664,10 +3662,10 @@ static int8_t get_wrist_gest_config(struct bmi2_wrist_gest_config *config, struc
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist gesture */
-    struct bmi2_feature_config wrist_gest_config = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_gest_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for wrist gesture feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_gest_config, BMI2_WRIST_GESTURE, dev);
@@ -3717,7 +3715,7 @@ static int8_t get_wrist_wear_wake_up_config(struct bmi2_wrist_wear_wake_up_confi
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3726,10 +3724,10 @@ static int8_t get_wrist_wear_wake_up_config(struct bmi2_wrist_wear_wake_up_confi
     uint8_t feat_found;
 
     /* Initialize feature configuration for wrist wear wake-up */
-    struct bmi2_feature_config wrist_wake_up_config = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_wake_up_config = {0, 0, 0};
 
     /* Copy the feature configuration address to a local pointer */
-    uint16_t *data_p = (uint16_t *) (void *)feat_config;
+    uint16_t *data_p = (uint16_t *)(void *)feat_config;
 
     /* Search for wrist wear wake-up feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&wrist_wake_up_config, BMI2_WRIST_WEAR_WAKE_UP, dev);
@@ -3788,7 +3786,7 @@ static int8_t get_wrist_gest_status(uint8_t *wrist_gest, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variables to define index */
     uint8_t idx = 0;
@@ -3797,7 +3795,7 @@ static int8_t get_wrist_gest_status(uint8_t *wrist_gest, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature output for wrist gesture */
-    struct bmi2_feature_config wrist_gest_out_config = { 0, 0, 0 };
+    struct bmi2_feature_config wrist_gest_out_config = {0, 0, 0};
 
     /* Search for wrist gesture feature and extract its configuration details */
     feat_found = extract_output_feat_config(&wrist_gest_out_config, BMI2_WRIST_GESTURE, dev);
@@ -3831,7 +3829,7 @@ static int8_t get_step_counter_output(uint32_t *step_count, struct bmi2_dev *dev
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variables to define index */
     uint8_t idx = 0;
@@ -3840,7 +3838,7 @@ static int8_t get_step_counter_output(uint32_t *step_count, struct bmi2_dev *dev
     uint8_t feat_found;
 
     /* Initialize feature output for step counter */
-    struct bmi2_feature_config step_cnt_out_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_cnt_out_config = {0, 0, 0};
 
     /* Search for step counter output feature and extract its configuration details */
     feat_found = extract_output_feat_config(&step_cnt_out_config, BMI2_STEP_COUNTER, dev);
@@ -3854,10 +3852,10 @@ static int8_t get_step_counter_output(uint32_t *step_count, struct bmi2_dev *dev
             idx = step_cnt_out_config.start_addr;
 
             /* Get the step counter output in 4 bytes */
-            *step_count = (uint32_t) feat_config[idx++];
-            *step_count |= ((uint32_t) feat_config[idx++] << 8);
-            *step_count |= ((uint32_t) feat_config[idx++] << 16);
-            *step_count |= ((uint32_t) feat_config[idx++] << 24);
+            *step_count = (uint32_t)feat_config[idx++];
+            *step_count |= ((uint32_t)feat_config[idx++] << 8);
+            *step_count |= ((uint32_t)feat_config[idx++] << 16);
+            *step_count |= ((uint32_t)feat_config[idx++] << 24);
         }
     }
     else
@@ -3877,7 +3875,7 @@ static int8_t get_nvm_error_status(struct bmi2_nvm_err_status *nvm_err_stat, str
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variables to define index */
     uint8_t idx = 0;
@@ -3886,7 +3884,7 @@ static int8_t get_nvm_error_status(struct bmi2_nvm_err_status *nvm_err_stat, str
     uint8_t feat_found;
 
     /* Initialize feature output for NVM error status */
-    struct bmi2_feature_config nvm_err_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config nvm_err_cfg = {0, 0, 0};
 
     /* Search for NVM error status feature and extract its configuration details */
     feat_found = extract_output_feat_config(&nvm_err_cfg, BMI2_NVM_STATUS, dev);
@@ -3936,7 +3934,7 @@ static int8_t get_user_gain_upd_status(uint8_t *status, struct bmi2_dev *dev)
     int8_t rslt = BMI2_OK;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variable to define the array offset */
     uint8_t idx = 0;
@@ -3948,7 +3946,7 @@ static int8_t get_user_gain_upd_status(uint8_t *status, struct bmi2_dev *dev)
     uint8_t aps_stat = 0;
 
     /* Initialize feature configuration for gyroscope user gain */
-    struct bmi2_feature_config gyr_user_gain_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config gyr_user_gain_cfg = {0, 0, 0};
 
     /* Search for user gain feature and extract its configuration details */
     feat_found = bmi2_extract_input_feat_config(&gyr_user_gain_cfg, BMI2_GYRO_GAIN_UPDATE, dev);
@@ -3998,7 +3996,7 @@ static int8_t get_step_activity_output(uint8_t *step_act, struct bmi2_dev *dev)
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variables to define index */
     uint8_t idx = 0;
@@ -4007,7 +4005,7 @@ static int8_t get_step_activity_output(uint8_t *step_act, struct bmi2_dev *dev)
     uint8_t feat_found;
 
     /* Initialize feature output for step activity */
-    struct bmi2_feature_config step_act_out_config = { 0, 0, 0 };
+    struct bmi2_feature_config step_act_out_config = {0, 0, 0};
 
     /* Search for step activity output feature and extract its configuration details */
     feat_found = extract_output_feat_config(&step_act_out_config, BMI2_STEP_ACTIVITY, dev);
@@ -4041,7 +4039,7 @@ static int8_t get_vfrm_error_status(struct bmi2_vfrm_err_status *vfrm_err_stat, 
     int8_t rslt;
 
     /* Array to define the feature configuration */
-    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = { 0 };
+    uint8_t feat_config[BMI2_FEAT_SIZE_IN_BYTES] = {0};
 
     /* Variables to define index */
     uint8_t idx = 0;
@@ -4050,7 +4048,7 @@ static int8_t get_vfrm_error_status(struct bmi2_vfrm_err_status *vfrm_err_stat, 
     uint8_t feat_found;
 
     /* Initialize feature output for VFRM error status */
-    struct bmi2_feature_config vfrm_err_cfg = { 0, 0, 0 };
+    struct bmi2_feature_config vfrm_err_cfg = {0, 0, 0};
 
     /* Search for VFRM error status feature and extract its configuration details */
     feat_found = extract_output_feat_config(&vfrm_err_cfg, BMI2_VFRM_STATUS, dev);
@@ -4147,46 +4145,46 @@ static int8_t set_feat_config(const struct bmi2_sens_config *sens_cfg, uint8_t l
 
     switch (sens_cfg[loop].type)
     {
-        /* Set any motion configuration */
-        case BMI2_ANY_MOTION:
-            rslt = set_any_motion_config(&sens_cfg[loop].cfg.any_motion, dev);
-            break;
+    /* Set any motion configuration */
+    case BMI2_ANY_MOTION:
+        rslt = set_any_motion_config(&sens_cfg[loop].cfg.any_motion, dev);
+        break;
 
-        /* Set no motion configuration */
-        case BMI2_NO_MOTION:
-            rslt = set_no_motion_config(&sens_cfg[loop].cfg.no_motion, dev);
-            break;
+    /* Set no motion configuration */
+    case BMI2_NO_MOTION:
+        rslt = set_no_motion_config(&sens_cfg[loop].cfg.no_motion, dev);
+        break;
 
-        /* Set sig-motion configuration */
-        case BMI2_SIG_MOTION:
-            rslt = set_sig_motion_config(&sens_cfg[loop].cfg.sig_motion, dev);
-            break;
+    /* Set sig-motion configuration */
+    case BMI2_SIG_MOTION:
+        rslt = set_sig_motion_config(&sens_cfg[loop].cfg.sig_motion, dev);
+        break;
 
-        /* Set the step counter parameters */
-        case BMI2_STEP_COUNTER_PARAMS:
-            rslt = set_step_count_params_config(sens_cfg[loop].cfg.step_counter_params, dev);
-            break;
+    /* Set the step counter parameters */
+    case BMI2_STEP_COUNTER_PARAMS:
+        rslt = set_step_count_params_config(sens_cfg[loop].cfg.step_counter_params, dev);
+        break;
 
-        /* Set step counter/detector/activity configuration */
-        case BMI2_STEP_DETECTOR:
-        case BMI2_STEP_COUNTER:
-        case BMI2_STEP_ACTIVITY:
-            rslt = set_step_config(&sens_cfg[loop].cfg.step_counter, dev);
-            break;
+    /* Set step counter/detector/activity configuration */
+    case BMI2_STEP_DETECTOR:
+    case BMI2_STEP_COUNTER:
+    case BMI2_STEP_ACTIVITY:
+        rslt = set_step_config(&sens_cfg[loop].cfg.step_counter, dev);
+        break;
 
-        /* Set the wrist gesture configuration */
-        case BMI2_WRIST_GESTURE:
-            rslt = set_wrist_gest_config(&sens_cfg[loop].cfg.wrist_gest, dev);
-            break;
+    /* Set the wrist gesture configuration */
+    case BMI2_WRIST_GESTURE:
+        rslt = set_wrist_gest_config(&sens_cfg[loop].cfg.wrist_gest, dev);
+        break;
 
-        /* Set the wrist wear wake-up configuration */
-        case BMI2_WRIST_WEAR_WAKE_UP:
-            rslt = set_wrist_wear_wake_up_config(&sens_cfg[loop].cfg.wrist_wear_wake_up, dev);
-            break;
+    /* Set the wrist wear wake-up configuration */
+    case BMI2_WRIST_WEAR_WAKE_UP:
+        rslt = set_wrist_wear_wake_up_config(&sens_cfg[loop].cfg.wrist_wear_wake_up, dev);
+        break;
 
-        default:
-            rslt = BMI2_E_INVALID_SENSOR;
-            break;
+    default:
+        rslt = BMI2_E_INVALID_SENSOR;
+        break;
     }
 
     return rslt;
@@ -4202,46 +4200,46 @@ static int8_t get_feat_config(struct bmi2_sens_config *sens_cfg, uint8_t loop, s
 
     switch (sens_cfg[loop].type)
     {
-        /* Get sig-motion configuration */
-        case BMI2_SIG_MOTION:
-            rslt = get_sig_motion_config(&sens_cfg[loop].cfg.sig_motion, dev);
-            break;
+    /* Get sig-motion configuration */
+    case BMI2_SIG_MOTION:
+        rslt = get_sig_motion_config(&sens_cfg[loop].cfg.sig_motion, dev);
+        break;
 
-        /* Get any motion configuration */
-        case BMI2_ANY_MOTION:
-            rslt = get_any_motion_config(&sens_cfg[loop].cfg.any_motion, dev);
-            break;
+    /* Get any motion configuration */
+    case BMI2_ANY_MOTION:
+        rslt = get_any_motion_config(&sens_cfg[loop].cfg.any_motion, dev);
+        break;
 
-        /* Get no motion configuration */
-        case BMI2_NO_MOTION:
-            rslt = get_no_motion_config(&sens_cfg[loop].cfg.no_motion, dev);
-            break;
+    /* Get no motion configuration */
+    case BMI2_NO_MOTION:
+        rslt = get_no_motion_config(&sens_cfg[loop].cfg.no_motion, dev);
+        break;
 
-        /* Set the step counter parameters */
-        case BMI2_STEP_COUNTER_PARAMS:
-            rslt = get_step_count_params_config(sens_cfg[loop].cfg.step_counter_params, dev);
-            break;
+    /* Set the step counter parameters */
+    case BMI2_STEP_COUNTER_PARAMS:
+        rslt = get_step_count_params_config(sens_cfg[loop].cfg.step_counter_params, dev);
+        break;
 
-        /* Get step counter/detector/activity configuration */
-        case BMI2_STEP_DETECTOR:
-        case BMI2_STEP_COUNTER:
-        case BMI2_STEP_ACTIVITY:
-            rslt = get_step_config(&sens_cfg[loop].cfg.step_counter, dev);
-            break;
+    /* Get step counter/detector/activity configuration */
+    case BMI2_STEP_DETECTOR:
+    case BMI2_STEP_COUNTER:
+    case BMI2_STEP_ACTIVITY:
+        rslt = get_step_config(&sens_cfg[loop].cfg.step_counter, dev);
+        break;
 
-        /* Get the wrist gesture configuration */
-        case BMI2_WRIST_GESTURE:
-            rslt = get_wrist_gest_config(&sens_cfg[loop].cfg.wrist_gest, dev);
-            break;
+    /* Get the wrist gesture configuration */
+    case BMI2_WRIST_GESTURE:
+        rslt = get_wrist_gest_config(&sens_cfg[loop].cfg.wrist_gest, dev);
+        break;
 
-        /* Get the wrist wear wake-up configuration */
-        case BMI2_WRIST_WEAR_WAKE_UP:
-            rslt = get_wrist_wear_wake_up_config(&sens_cfg[loop].cfg.wrist_wear_wake_up, dev);
-            break;
+    /* Get the wrist wear wake-up configuration */
+    case BMI2_WRIST_WEAR_WAKE_UP:
+        rslt = get_wrist_wear_wake_up_config(&sens_cfg[loop].cfg.wrist_wear_wake_up, dev);
+        break;
 
-        default:
-            rslt = BMI2_E_INVALID_SENSOR;
-            break;
+    default:
+        rslt = BMI2_E_INVALID_SENSOR;
+        break;
     }
 
     return rslt;

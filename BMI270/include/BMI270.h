@@ -4,27 +4,31 @@
 
 // Wrap the Bosch C headers in extern "C" to prevent linkage errors in C++
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 #include "bmi2.h"
-#include "bmi270_lib.h" 
+#include "bmi270_lib.h"
 #ifdef __cplusplus
 }
 #endif
 
 // Structure to hold human-readable sensor data
-struct IMUData {
+struct IMUData
+{
     float acc_x, acc_y, acc_z; // Acceleration in G
     float gyr_x, gyr_y, gyr_z; // Angular velocity in Degrees Per Second (DPS)
 };
 
 // Context structure passed to the C-style I2C callbacks
-struct Bmi270I2cContext {
-    i2c_inst_t* i2c_port;
+struct Bmi270I2cContext
+{
+    i2c_inst_t *i2c_port;
     uint8_t dev_addr;
 };
 
-class BMI270 {
+class BMI270
+{
 public:
     /**
      * @brief Constructor for the BMI270 sensor
@@ -33,7 +37,7 @@ public:
      * @param scl_pin GPIO pin number for SCL
      * @param dev_addr I2C device address (default is 0x68)
      */
-    BMI270(i2c_inst_t* i2c_port, uint sda_pin, uint scl_pin, uint8_t dev_addr = 0x68);
+    BMI270(i2c_inst_t *i2c_port, uint sda_pin, uint scl_pin, uint8_t dev_addr = 0x68);
 
     /**
      * @brief Initializes the I2C bus, loads sensor firmware, and configures max accuracy.
@@ -54,7 +58,7 @@ public:
     IMUData getData() const;
 
 private:
-    i2c_inst_t* _i2c_port;
+    i2c_inst_t *_i2c_port;
     uint _sda_pin;
     uint _scl_pin;
     uint8_t _dev_addr;
