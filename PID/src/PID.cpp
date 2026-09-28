@@ -137,12 +137,20 @@ void QuadPID::compute(ESC::ESCConfig &config, const IMUData &imu, float dt)
     float target_pitch_deg = mapStickInput(config.pitch, _config.max_tilt_angle_deg);
     float target_yaw_dps = mapStickInput(config.yaw, _config.max_yaw_rate_dps);
 
+    // Apply 180-degree Z-axis (yaw) IMU rotation:
+    // Front <-> Rear (Pitch inverted) and Left <-> Right (Roll inverted), Z-axis unchanged
+    const float roll_deg = -imu.roll_deg;
+    const float roll_rate_dps = -imu.roll_rate_dps;
+    const float pitch_deg = -imu.pitch_deg;
+    const float pitch_rate_dps = -imu.pitch_rate_dps;
+    const float yaw_rate_dps = imu.yaw_rate_dps;
+
     // Compute Roll and Pitch PIDs (Self-Level Angle mode using direct gyro rate for D-term damping)
-    float roll_cmd = _roll_pid.compute(target_roll_deg, imu.roll_deg, dt, imu.roll_rate_dps, true);
-    float pitch_cmd = _pitch_pid.compute(target_pitch_deg, imu.pitch_deg, dt, imu.pitch_rate_dps, true);
+    float roll_cmd = _roll_pid.compute(target_roll_deg, roll_deg, dt, roll_rate_dps, true);
+    float pitch_cmd = _pitch_pid.compute(target_pitch_deg, pitch_deg, dt, pitch_rate_dps, true);
 
     // Compute Yaw PID (Rate mode)
-    float yaw_cmd = _yaw_pid.compute(target_yaw_dps, imu.yaw_rate_dps, dt, 0.0f, false);
+    float yaw_cmd = _yaw_pid.compute(target_yaw_dps, yaw_rate_dps, dt, 0.0f, false);
 
     // Convert and clamp to ESC::update parameter ranges [-1000, +999]
     out.roll = static_cast<int16_t>(std::lround(clampf(roll_cmd, -1000.0f, 999.0f)));
