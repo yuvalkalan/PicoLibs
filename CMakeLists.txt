@@ -55,6 +55,7 @@ set(MY_LIBRARIES
         ESC
         WS2812
         HighPIO
+        PID
 )
 
 foreach(LIB_NAME IN LISTS MY_LIBRARIES)

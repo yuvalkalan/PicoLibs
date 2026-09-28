@@ -14,3 +14,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         DShot600
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+# # add example file here
+# add_executable(ESC_example examples/ESC_example.cpp)
+
+# # Links the ESC library (and its PUBLIC dependencies/includes) to the example
+# target_link_libraries(ESC_example PRIVATE ${PROJECT_NAME})
+
+# # Generates the .uf2, .bin, and .hex files for the Pico
+# pico_add_extra_outputs(ESC_example)

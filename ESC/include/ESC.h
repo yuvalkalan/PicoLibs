@@ -27,14 +27,19 @@ public:
         uint8_t pin4;
         PIO pio;
     };
+    struct ESCConfig
+    {
+        uint16_t throttle; // value between 0 to 199
+        int16_t roll;      // value between -999 to 1000
+        int16_t pitch;     // value between -999 to 1000
+        int16_t yaw;       // value between -999 to 1000
+    };
 
 private:
     DShot600 m_motors[4];
-    uint16_t m_throttle;
-    int16_t m_roll, m_pitch, m_yaw;
 
 public:
     ESC(const MotorsConfig &config);
     void init();
-    void update(uint16_t throttle, int16_t roll, int16_t pitch, int16_t yaw);
+    void update(const ESCConfig &config);
 };
