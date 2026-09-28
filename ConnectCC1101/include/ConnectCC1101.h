@@ -1,3 +1,10 @@
+/**
+ * ConnectCC1101 is a reliable, connection-oriented transport layer built on top of your base CC1101 driver.
+ *  It implements a TCP-like protocol over Sub-GHz RF, handling 3-way handshakes (SYN → SYN-ACK → ACK),
+ *  message fragmentation and reassembly (up to 1022 bytes of payload), automatic retransmissions,
+ *  and closed-loop TX power control based on RSSI feedback.
+ */
+
 #pragma once
 #include "CC1101.h"
 #include "MultiCore.h"
@@ -11,48 +18,49 @@
 #define TCP_TRANSMIT_TIMEOUT_FACTOR 3
 #define TCP_RTO_FACTOR TCP_TRANSMIT_TIMEOUT_FACTOR * 2 // retransmission timeout
 
-struct __attribute__((packed)) TCPFlags
-{
-    bool syn : 1;       // syn flag bit
-    bool ack : 1;       // ack flag bit
-    bool rssi_low : 1;  // rssi low flag bit
-    bool rssi_high : 1; // rssi high flag bit
-    bool start : 1;     // start of message flag bit
-};
-
-struct __attribute__((packed)) TCPPacketHeader : public PacketHeader
-{
-    TCPFlags flags = {0};
-    uint16_t ack = 0;
-    uint16_t syn = 0;
-};
-
-struct __attribute__((packed)) TCPPacket
-{
-    TCPPacketHeader header;
-    uint8_t payload[CC1101_FIFOBUFFER - sizeof(header)];
-};
-
-struct __attribute__((packed)) TCPPacketHandler
-{
-    TCPPacket packet;
-    uint8_t retries = 0;
-};
-
-struct __attribute__((packed)) Msg
-{
-    uint16_t length;
-    uint8_t data[MAX_MSG_SIZE - sizeof(length)] = {0};
-};
-
-struct PendingAck
-{
-    uint8_t addr;
-    uint16_t syn;
-};
-
 class ConnectCC1101 : public CC1101
 {
+private:
+    struct __attribute__((packed)) TCPFlags
+    {
+        bool syn : 1;       // syn flag bit
+        bool ack : 1;       // ack flag bit
+        bool rssi_low : 1;  // rssi low flag bit
+        bool rssi_high : 1; // rssi high flag bit
+        bool start : 1;     // start of message flag bit
+    };
+
+    struct __attribute__((packed)) TCPPacketHeader : public CC1101::PacketHeader
+    {
+        TCPFlags flags = {0};
+        uint16_t ack = 0;
+        uint16_t syn = 0;
+    };
+
+    struct __attribute__((packed)) TCPPacket
+    {
+        TCPPacketHeader header;
+        uint8_t payload[CC1101_FIFOBUFFER - sizeof(header)];
+    };
+
+    struct __attribute__((packed)) TCPPacketHandler
+    {
+        TCPPacket packet;
+        uint8_t retries = 0;
+    };
+
+    struct PendingAck
+    {
+        uint8_t addr;
+        uint16_t syn;
+    };
+
+public:
+    struct __attribute__((packed)) Msg
+    {
+        uint16_t length;
+        uint8_t data[MAX_MSG_SIZE - sizeof(length)] = {0};
+    };
 
 private: // synconize data
     volatile uint16_t m_ack;
@@ -86,14 +94,15 @@ private:
 public:
     void send(Msg &msg);
     bool receive(Msg &msg, uint32_t timeout_ms);
-    bool update();
+    bool update(); // run this on a different core
     bool connect(uint8_t rx_addr, uint32_t timeout_ms);
     bool accept(uint32_t timeout_ms);
     void disconnect();
     bool is_connected();
     bool is_idle();
     bool have_data();
+    void init() override;
 
 public:
-    ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
+    ConnectCC1101(spi_inst_t *spi, uint miso, uint csn, uint sck, uint mosi, uint gdo2, uint gdo0, uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
 };

@@ -117,6 +117,6 @@ public: // static convertors function
     static uint8_t check_crc(uint8_t lqi);
 
 public:
-    void init();
+    virtual void init();
     CC1101(spi_inst_t *spi, uint miso, uint csn, uint sck, uint mosi, uint gdo2, uint gdo0, uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address);
 };

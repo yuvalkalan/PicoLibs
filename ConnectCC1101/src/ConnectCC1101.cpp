@@ -1,13 +1,16 @@
 #include "ConnectCC1101.h"
 
-
-
 auto_init_recursive_mutex(cc1101_mutex);
 
-
-
-ConnectCC1101::ConnectCC1101(uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(freq, mode, channel, address)
+;
+ConnectCC1101::ConnectCC1101(spi_inst_t *spi, uint miso, uint csn, uint sck, uint mosi, uint gdo2, uint gdo0, uint8_t freq, uint8_t mode, uint8_t channel, uint8_t address) : CC1101(spi, miso, csn, sck, mosi, gdo2, gdo0, freq, mode, channel, address)
 {
+}
+
+void ConnectCC1101::init()
+{
+
+    CC1101::init();
     set_output_power_level(m_tx_power_dbm);
     calibrate_tx_speed();
 }
