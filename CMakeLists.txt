@@ -46,7 +46,7 @@ set(MY_LIBRARIES
         LedControl
         MultiCore
         BMI270
-        GPS
+        NEO6
         E01C2G4M27D
         HighSPI
         HighI2C
