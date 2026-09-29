@@ -12,25 +12,25 @@
 // GPS Struct ---
 struct __attribute__((packed)) GPSData
 {
-    int32_t latitude; 
-    int32_t longitude; 
+    int32_t latitude;
+    int32_t longitude;
 
-    uint32_t year : 6;   
-    uint32_t month : 4;  
-    uint32_t day : 5;    
-    uint32_t hour : 5;   
-    uint32_t minute : 6; 
-    uint32_t second : 6; 
+    uint32_t year : 6;
+    uint32_t month : 4;
+    uint32_t day : 5;
+    uint32_t hour : 5;
+    uint32_t minute : 6;
+    uint32_t second : 6;
 
-    int16_t altitude_m;   
-    uint16_t speed_kmh;   
-    uint16_t heading_deg; 
+    int16_t altitude_m;
+    uint16_t speed_kmh;
+    uint16_t heading_deg;
 
-    uint8_t satellites; 
-    bool valid;         
+    uint8_t satellites;
+    bool valid;
 };
 
-class GPS
+class NEO6
 {
 private:
     uart_inst_t *m_uart;
@@ -39,7 +39,7 @@ private:
     uint m_rx;
     GPSData m_data;
 
-    static GPS* s_instance;
+    static NEO6 *s_instance;
     static void on_uart_rx_isr();
     void isr_handler();
 
@@ -52,9 +52,9 @@ private:
     volatile char m_latest_gga[128];
     volatile bool m_rmc_ready;
     volatile bool m_gga_ready;
-    
+
     // Main loop parser buffer
-    char m_buffer[128]; 
+    char m_buffer[128];
 
 public:
     float get_speed_kmh() const;
@@ -71,6 +71,6 @@ public:
     bool update();
 
 public:
-    GPS(uart_inst_t *uart, uint baudrate, uint tx, uint rx);
-    ~GPS();
+    NEO6(uart_inst_t *uart, uint baudrate, uint tx, uint rx);
+    ~NEO6();
 };

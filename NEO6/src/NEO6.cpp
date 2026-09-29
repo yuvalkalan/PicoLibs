@@ -1,7 +1,7 @@
-#include "GPS.h"
+#include "NEO6.h"
 
 // Initialize static instance pointer for IRQ routing
-GPS *GPS::s_instance = nullptr;
+NEO6 *NEO6::s_instance = nullptr;
 
 // Helper function to convert a single hex character to its integer value
 int hex2int(char c)
@@ -126,12 +126,13 @@ void parseNMEALine(char *line, GPSData &gps)
         }
     }
 }
-void GPS::on_uart_rx_isr()
+void NEO6::on_uart_rx_isr()
 {
-    if (s_instance) s_instance->isr_handler();
+    if (s_instance)
+        s_instance->isr_handler();
 }
 
-void GPS::isr_handler()
+void NEO6::isr_handler()
 {
     while (uart_is_readable(m_uart))
     {
@@ -144,12 +145,12 @@ void GPS::isr_handler()
             // Drop the completed line into the appropriate mailbox
             if (strncmp(m_isr_buffer, "$GPRMC", 6) == 0)
             {
-                strncpy((char*)m_latest_rmc, m_isr_buffer, sizeof(m_latest_rmc));
+                strncpy((char *)m_latest_rmc, m_isr_buffer, sizeof(m_latest_rmc));
                 m_rmc_ready = true;
             }
             else if (strncmp(m_isr_buffer, "$GPGGA", 6) == 0)
             {
-                strncpy((char*)m_latest_gga, m_isr_buffer, sizeof(m_latest_gga));
+                strncpy((char *)m_latest_gga, m_isr_buffer, sizeof(m_latest_gga));
                 m_gga_ready = true;
             }
 
@@ -162,16 +163,16 @@ void GPS::isr_handler()
     }
 }
 
-GPS::GPS(uart_inst_t *uart, uint baudrate, uint tx, uint rx) : m_uart(uart),
-                                                               m_baudrate(baudrate),
-                                                               m_tx(tx),
-                                                               m_rx(rx),
-                                                               m_isr_index(0),
-                                                               m_rmc_ready(false),
-                                                               m_gga_ready(false)
+NEO6::NEO6(uart_inst_t *uart, uint baudrate, uint tx, uint rx) : m_uart(uart),
+                                                                 m_baudrate(baudrate),
+                                                                 m_tx(tx),
+                                                                 m_rx(rx),
+                                                                 m_isr_index(0),
+                                                                 m_rmc_ready(false),
+                                                                 m_gga_ready(false)
 {
     memset(&m_data, 0, sizeof(GPSData));
-    s_instance = this; 
+    s_instance = this;
 
     uart_init(m_uart, m_baudrate);
     gpio_set_function(m_tx, GPIO_FUNC_UART);
@@ -181,10 +182,10 @@ GPS::GPS(uart_inst_t *uart, uint baudrate, uint tx, uint rx) : m_uart(uart),
     int UART_IRQ = (m_uart == uart0) ? UART0_IRQ : UART1_IRQ;
     irq_set_exclusive_handler(UART_IRQ, on_uart_rx_isr);
     irq_set_enabled(UART_IRQ, true);
-    uart_set_irq_enables(m_uart, true, false); 
+    uart_set_irq_enables(m_uart, true, false);
 }
 
-GPS::~GPS()
+NEO6::~NEO6()
 {
     int UART_IRQ = (m_uart == uart0) ? UART0_IRQ : UART1_IRQ;
     irq_set_enabled(UART_IRQ, false);
@@ -192,16 +193,16 @@ GPS::~GPS()
     s_instance = nullptr;
 }
 
-float GPS::get_speed_kmh() const { return m_data.speed_kmh / 100.0f; }
-uint8_t GPS::get_sat_counter() const { return m_data.satellites; }
-int16_t GPS::get_altitude() const { return m_data.altitude_m; }
-double GPS::get_latitude() const { return m_data.latitude / 10000000.0; }
-double GPS::get_longitude() const { return m_data.longitude / 10000000.0; }
-bool GPS::is_valid() const { return m_data.valid; }
-float GPS::get_direction() const { return m_data.heading_deg / 100.0f; }
-const GPSData *GPS::get_raw_value() const { return &m_data; }
+float NEO6::get_speed_kmh() const { return m_data.speed_kmh / 100.0f; }
+uint8_t NEO6::get_sat_counter() const { return m_data.satellites; }
+int16_t NEO6::get_altitude() const { return m_data.altitude_m; }
+double NEO6::get_latitude() const { return m_data.latitude / 10000000.0; }
+double NEO6::get_longitude() const { return m_data.longitude / 10000000.0; }
+bool NEO6::is_valid() const { return m_data.valid; }
+float NEO6::get_direction() const { return m_data.heading_deg / 100.0f; }
+const GPSData *NEO6::get_raw_value() const { return &m_data; }
 
-datetime_t GPS::get_datetime() const
+datetime_t NEO6::get_datetime() const
 {
     datetime_t dt;
     dt.year = m_data.year + 2000;
@@ -214,7 +215,7 @@ datetime_t GPS::get_datetime() const
     return dt;
 }
 
-bool GPS::update()
+bool NEO6::update()
 {
     bool have_change = false;
     int UART_IRQ = (m_uart == uart0) ? UART0_IRQ : UART1_IRQ;
@@ -224,7 +225,7 @@ bool GPS::update()
     {
         // Disable interrupt briefly so the ISR doesn't overwrite while we copy
         irq_set_enabled(UART_IRQ, false);
-        strncpy(m_buffer, (const char*)m_latest_rmc, sizeof(m_buffer));
+        strncpy(m_buffer, (const char *)m_latest_rmc, sizeof(m_buffer));
         m_rmc_ready = false;
         irq_set_enabled(UART_IRQ, true);
 
@@ -236,7 +237,7 @@ bool GPS::update()
     if (m_gga_ready)
     {
         irq_set_enabled(UART_IRQ, false);
-        strncpy(m_buffer, (const char*)m_latest_gga, sizeof(m_buffer));
+        strncpy(m_buffer, (const char *)m_latest_gga, sizeof(m_buffer));
         m_gga_ready = false;
         irq_set_enabled(UART_IRQ, true);
 
