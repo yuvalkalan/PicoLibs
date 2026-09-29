@@ -67,7 +67,7 @@ void CC1101::init()
     // set channel
     set_channel(m_channel);
     // set output power amplifier
-    set_output_power_level(10); // set PA to 0dBm as default
+    set_output_power_level(0); // set PA to 0dBm as default
     // set my receiver address
     set_myaddr(m_address); // m_address from EEPROM to global variable
     Logger::print(LogLevel::TRACE, "init done!\n");

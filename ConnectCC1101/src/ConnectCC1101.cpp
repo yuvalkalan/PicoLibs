@@ -11,7 +11,7 @@ void ConnectCC1101::init()
 {
 
     CC1101::init();
-    set_output_power_level(m_tx_power_dbm);
+    // set_output_power_level(m_tx_power_dbm);
     calibrate_tx_speed();
 }
 
@@ -198,6 +198,7 @@ bool ConnectCC1101::receive(Msg &msg, uint32_t timeout_ms)
 
 void ConnectCC1101::update_tx_power(TCPPacket &packet)
 {
+    return;
     ScopedMutexRecursive lock(&cc1101_mutex);
     auto current_tx_power = m_tx_power_dbm;
     if (packet.header.flags.rssi_low)
