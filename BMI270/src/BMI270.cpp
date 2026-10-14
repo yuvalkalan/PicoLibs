@@ -91,10 +91,10 @@ void BMI270::calibrate(uint16_t samples)
             gy_sum += _sensor_data.gyr.y / 32.8f;
             gz_sum += _sensor_data.gyr.z / 32.8f;
 
-            // Tilt right -> acc_x < 0 -> positive roll
-            roll_sum += std::atan2(-ax, std::sqrt(ay * ay + az * az)) * RAD_TO_DEG;
-            // Tilt forward -> acc_y < 0 -> positive pitch
-            pitch_sum += std::atan2(-ay, std::sqrt(ax * ax + az * az)) * RAD_TO_DEG;
+            // Tilt right -> acc_x > 0 -> positive roll
+            roll_sum += std::atan2(ax, std::sqrt(ay * ay + az * az)) * RAD_TO_DEG;
+            // Tilt forward -> acc_y > 0 -> positive pitch
+            pitch_sum += std::atan2(ay, std::sqrt(ax * ax + az * az)) * RAD_TO_DEG;
             valid++;
         }
         sleep_ms(2);
@@ -138,17 +138,20 @@ bool BMI270::update(float dt)
     _data.gyr_y = (_sensor_data.gyr.y / 32.8f) - _gyr_offset_y;
     _data.gyr_z = (_sensor_data.gyr.z / 32.8f) - _gyr_offset_z;
 
-    // 3. Map sensor axes to Drone Flight Axes (matching ESC::update conventions)
-    // +X = Right, +Y = Forward, +Z = Up
-    _data.roll_rate_dps = _data.gyr_y;   // Rolling right  = +gyr_y
-    _data.pitch_rate_dps = -_data.gyr_x; // Pitching fwd   = -gyr_x
-    _data.yaw_rate_dps = -_data.gyr_z;   // Yawing right   = -gyr_z
+    // 3. Map sensor axes to Drone Flight Axes (matching ESC::update conventions):
+    // Sensor +X = Left, Sensor +Y = Rear, Sensor +Z = Up
+    // Roll (+)  = Banking right (tilts right, acc_x > 0, gyr_y < 0 -> roll_rate_dps = -gyr_y)
+    // Pitch (+) = Nose tilting forward/down (tilts fwd, acc_y > 0, gyr_x > 0 -> pitch_rate_dps = +gyr_x)
+    // Yaw (+)   = Rotating right/CW viewed from top (gyr_z < 0 -> yaw_rate_dps = -gyr_z)
+    _data.roll_rate_dps = -_data.gyr_y;
+    _data.pitch_rate_dps = _data.gyr_x;
+    _data.yaw_rate_dps = -_data.gyr_z;
 
     // 4. Calculate Accelerometer Tilt Angles
-    // Tilting right -> acc_x < 0 -> roll_acc > 0
-    float roll_acc = (std::atan2(-_data.acc_x, std::sqrt(_data.acc_y * _data.acc_y + _data.acc_z * _data.acc_z)) * RAD_TO_DEG) - _roll_acc_offset;
-    // Tilting forward -> acc_y < 0 -> pitch_acc > 0
-    float pitch_acc = (std::atan2(-_data.acc_y, std::sqrt(_data.acc_x * _data.acc_x + _data.acc_z * _data.acc_z)) * RAD_TO_DEG) - _pitch_acc_offset;
+    // Tilting right -> acc_x > 0 -> roll_acc > 0
+    float roll_acc = (std::atan2(_data.acc_x, std::sqrt(_data.acc_y * _data.acc_y + _data.acc_z * _data.acc_z)) * RAD_TO_DEG) - _roll_acc_offset;
+    // Tilting forward -> acc_y > 0 -> pitch_acc > 0
+    float pitch_acc = (std::atan2(_data.acc_y, std::sqrt(_data.acc_x * _data.acc_x + _data.acc_z * _data.acc_z)) * RAD_TO_DEG) - _pitch_acc_offset;
 
     // 5. Complementary Filter (combines fast gyro integration with drift-free accel angle)
     _data.roll_deg = _alpha * (_data.roll_deg + _data.roll_rate_dps * dt) + (1.0f - _alpha) * roll_acc;

@@ -137,12 +137,11 @@ void QuadPID::compute(ESC::ESCConfig &config, const IMUData &imu, float dt)
     float target_pitch_deg = mapStickInput(config.pitch, _config.max_tilt_angle_deg);
     float target_yaw_dps = mapStickInput(config.yaw, _config.max_yaw_rate_dps);
 
-    // Apply 180-degree Z-axis (yaw) IMU rotation:
-    // Front <-> Rear (Pitch inverted) and Left <-> Right (Roll inverted), Z-axis unchanged
-    const float roll_deg = -imu.roll_deg;
-    const float roll_rate_dps = -imu.roll_rate_dps;
-    const float pitch_deg = -imu.pitch_deg;
-    const float pitch_rate_dps = -imu.pitch_rate_dps;
+    // IMU measurements in drone flight axes (Roll: right tilt +, Pitch: nose down +, Yaw: CW +)
+    const float roll_deg = imu.roll_deg;
+    const float roll_rate_dps = imu.roll_rate_dps;
+    const float pitch_deg = imu.pitch_deg;
+    const float pitch_rate_dps = imu.pitch_rate_dps;
     const float yaw_rate_dps = imu.yaw_rate_dps;
 
     // Compute Roll and Pitch PIDs (Self-Level Angle mode using direct gyro rate for D-term damping)
